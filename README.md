@@ -21,8 +21,3 @@ perhaps some graphs or something
 
 - Impose smarsity on edge-flip smoothing by making probability of deletion larger than probability of adding edge,
 so the deletion and addition use separate probability distributions
-
-Want:
-
-- Probably ask chat for bunch more improvement ideas as I don't think the above will be enough, you probably won't get
-to all of the stuff there before the phase 2 is due.
