@@ -1,0 +1,4 @@
+p_delete,p_add,max_additions,evaluated_nodes,correct_nodes,correct_fraction,correct_fraction_ci_lower,correct_fraction_ci_upper,positive_certified_nodes,positive_certified_accuracy,positive_certified_accuracy_ci_lower,positive_certified_accuracy_ci_upper,certified_fraction_on_correct,certified_fraction_on_correct_ci_lower,certified_fraction_on_correct_ci_upper,mean_certified_radius_on_correct
+0.01,5e-06,64,10,6,0.6,0.3126695474501863,0.8318224187964901,0,0.0,0.0,0.2775401687666165,0.0,0.0,0.3903430336530645,0.0
+0.02,1e-05,96,10,6,0.6,0.3126695474501863,0.8318224187964901,0,0.0,0.0,0.2775401687666165,0.0,0.0,0.3903430336530645,0.0
+0.05,2e-05,160,10,6,0.6,0.3126695474501863,0.8318224187964901,0,0.0,0.0,0.2775401687666165,0.0,0.0,0.3903430336530645,0.0

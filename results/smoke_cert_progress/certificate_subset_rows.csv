@@ -1,0 +1,9 @@
+p_flip,node_idx,predicted_class,true_label,is_correct,certified_radius,reported_certified_radius,pA_lower
+0.01,1951,0,3,False,0,0,0.0005
+0.01,2314,0,3,False,0,0,0.0005
+0.02,1951,2,3,False,0,0,0.0005
+0.02,2314,6,3,False,0,0,0.0005
+0.05,1951,6,3,False,0,0,0.0005
+0.05,2314,6,3,False,0,0,0.0005
+0.1,1951,6,3,False,0,0,0.0005
+0.1,2314,6,3,False,0,0,0.0005

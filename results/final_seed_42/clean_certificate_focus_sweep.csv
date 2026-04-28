@@ -1,0 +1,8 @@
+mode,p_flip,p_delete,p_add,max_additions,predicted_class,true_label,is_correct,reported_total_radius,reported_delete_budget,reported_add_budget,pA_lower
+symmetric-edge-flip,0.01,,,,3,3,True,0,,,0.9492398681704209
+symmetric-edge-flip,0.02,,,,3,3,True,0,,,0.9571436873657766
+symmetric-edge-flip,0.05,,,,3,3,True,0,,,0.9571436873657766
+symmetric-edge-flip,0.1,,,,3,3,True,1,,,0.9612958817839642
+sparse-edge-flip,,0.01,5e-06,64,3,3,True,0,0,0,0.9811771485586084
+sparse-edge-flip,,0.02,1e-05,96,3,3,True,0,0,0,0.9811771485586084
+sparse-edge-flip,,0.05,2e-05,160,3,3,True,0,1,0,0.9811771485586084

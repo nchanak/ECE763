@@ -1,0 +1,4 @@
+p_delete,p_add,max_additions,clean_total_radius,attacked_total_radius,clean_reported_total_radius,attacked_reported_total_radius,clean_delete_budget,attacked_delete_budget,clean_add_budget,attacked_add_budget,clean_pA_lower,attacked_pA_lower,clean_pred,attacked_pred,clean_is_correct,attacked_is_correct,true_label
+0.01,5e-06,64,0,0,0,0,0,0,0,0,0.9571436873657766,0.9752825416552515,2,3,True,False,2
+0.02,1e-05,96,0,0,0,0,0,0,0,0,0.9205229050485259,0.9811771485586084,2,3,True,False,2
+0.05,2e-05,160,0,0,0,0,0,0,0,0,0.8447264871287752,0.9702473281193681,2,3,True,False,2

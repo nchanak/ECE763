@@ -1,0 +1,405 @@
+{
+  "seed": 3,
+  "dataset": "Cora",
+  "num_nodes": 2708,
+  "num_edges": 5278,
+  "best_validation_accuracy": 0.272,
+  "best_test_accuracy": 0.284,
+  "clean_metrics": {
+    "train": 0.39285714285714285,
+    "val": 0.272,
+    "test": 0.284
+  },
+  "certified_accuracy_evaluation": {
+    "node_source": "test_mask",
+    "node_selection": "seeded random subset",
+    "max_nodes": 2,
+    "evaluated_nodes": 2,
+    "samples_per_node": 1,
+    "confidence_interval": "Wilson 95%",
+    "confidence_z": 1.96
+  },
+  "edge_drop_baseline": null,
+  "sparse_flip_baseline": null,
+  "local_certificate_accuracy_subset_nodes": [
+    1951,
+    2314
+  ],
+  "local_certificate_accuracy_subset_sweep": [
+    {
+      "p_flip": 0.01,
+      "evaluated_nodes": 2,
+      "correct_nodes": 0,
+      "correct_fraction": 0.0,
+      "correct_fraction_ci_lower": 0.0,
+      "correct_fraction_ci_upper": 0.6576280471103807,
+      "positive_certified_nodes": 0,
+      "positive_certified_accuracy": 0.0,
+      "positive_certified_accuracy_ci_lower": 0.0,
+      "positive_certified_accuracy_ci_upper": 0.6576280471103807,
+      "certified_fraction_on_correct": 0.0,
+      "certified_fraction_on_correct_ci_lower": 0.0,
+      "certified_fraction_on_correct_ci_upper": 0.0,
+      "mean_certified_radius_on_correct": 0.0
+    },
+    {
+      "p_flip": 0.02,
+      "evaluated_nodes": 2,
+      "correct_nodes": 0,
+      "correct_fraction": 0.0,
+      "correct_fraction_ci_lower": 0.0,
+      "correct_fraction_ci_upper": 0.6576280471103807,
+      "positive_certified_nodes": 0,
+      "positive_certified_accuracy": 0.0,
+      "positive_certified_accuracy_ci_lower": 0.0,
+      "positive_certified_accuracy_ci_upper": 0.6576280471103807,
+      "certified_fraction_on_correct": 0.0,
+      "certified_fraction_on_correct_ci_lower": 0.0,
+      "certified_fraction_on_correct_ci_upper": 0.0,
+      "mean_certified_radius_on_correct": 0.0
+    },
+    {
+      "p_flip": 0.05,
+      "evaluated_nodes": 2,
+      "correct_nodes": 0,
+      "correct_fraction": 0.0,
+      "correct_fraction_ci_lower": 0.0,
+      "correct_fraction_ci_upper": 0.6576280471103807,
+      "positive_certified_nodes": 0,
+      "positive_certified_accuracy": 0.0,
+      "positive_certified_accuracy_ci_lower": 0.0,
+      "positive_certified_accuracy_ci_upper": 0.6576280471103807,
+      "certified_fraction_on_correct": 0.0,
+      "certified_fraction_on_correct_ci_lower": 0.0,
+      "certified_fraction_on_correct_ci_upper": 0.0,
+      "mean_certified_radius_on_correct": 0.0
+    },
+    {
+      "p_flip": 0.1,
+      "evaluated_nodes": 2,
+      "correct_nodes": 0,
+      "correct_fraction": 0.0,
+      "correct_fraction_ci_lower": 0.0,
+      "correct_fraction_ci_upper": 0.6576280471103807,
+      "positive_certified_nodes": 0,
+      "positive_certified_accuracy": 0.0,
+      "positive_certified_accuracy_ci_lower": 0.0,
+      "positive_certified_accuracy_ci_upper": 0.6576280471103807,
+      "certified_fraction_on_correct": 0.0,
+      "certified_fraction_on_correct_ci_lower": 0.0,
+      "certified_fraction_on_correct_ci_upper": 0.0,
+      "mean_certified_radius_on_correct": 0.0
+    }
+  ],
+  "local_certified_accuracy_curve": [
+    {
+      "p_flip": 0.01,
+      "radius": 0,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.01,
+      "radius": 1,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.01,
+      "radius": 2,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.01,
+      "radius": 3,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.01,
+      "radius": 4,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.01,
+      "radius": 5,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.02,
+      "radius": 0,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.02,
+      "radius": 1,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.02,
+      "radius": 2,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.02,
+      "radius": 3,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.02,
+      "radius": 4,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.02,
+      "radius": 5,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.05,
+      "radius": 0,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.05,
+      "radius": 1,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.05,
+      "radius": 2,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.05,
+      "radius": 3,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.05,
+      "radius": 4,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.05,
+      "radius": 5,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.1,
+      "radius": 0,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.1,
+      "radius": 1,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.1,
+      "radius": 2,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.1,
+      "radius": 3,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.1,
+      "radius": 4,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_flip": 0.1,
+      "radius": 5,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    }
+  ],
+  "local_certificate_subset_rows": [
+    {
+      "p_flip": 0.01,
+      "node_idx": 1951,
+      "predicted_class": 0,
+      "true_label": 3,
+      "is_correct": false,
+      "certified_radius": 0,
+      "reported_certified_radius": 0,
+      "pA_lower": 0.0005
+    },
+    {
+      "p_flip": 0.01,
+      "node_idx": 2314,
+      "predicted_class": 0,
+      "true_label": 3,
+      "is_correct": false,
+      "certified_radius": 0,
+      "reported_certified_radius": 0,
+      "pA_lower": 0.0005
+    },
+    {
+      "p_flip": 0.02,
+      "node_idx": 1951,
+      "predicted_class": 2,
+      "true_label": 3,
+      "is_correct": false,
+      "certified_radius": 0,
+      "reported_certified_radius": 0,
+      "pA_lower": 0.0005
+    },
+    {
+      "p_flip": 0.02,
+      "node_idx": 2314,
+      "predicted_class": 6,
+      "true_label": 3,
+      "is_correct": false,
+      "certified_radius": 0,
+      "reported_certified_radius": 0,
+      "pA_lower": 0.0005
+    },
+    {
+      "p_flip": 0.05,
+      "node_idx": 1951,
+      "predicted_class": 6,
+      "true_label": 3,
+      "is_correct": false,
+      "certified_radius": 0,
+      "reported_certified_radius": 0,
+      "pA_lower": 0.0005
+    },
+    {
+      "p_flip": 0.05,
+      "node_idx": 2314,
+      "predicted_class": 6,
+      "true_label": 3,
+      "is_correct": false,
+      "certified_radius": 0,
+      "reported_certified_radius": 0,
+      "pA_lower": 0.0005
+    },
+    {
+      "p_flip": 0.1,
+      "node_idx": 1951,
+      "predicted_class": 6,
+      "true_label": 3,
+      "is_correct": false,
+      "certified_radius": 0,
+      "reported_certified_radius": 0,
+      "pA_lower": 0.0005
+    },
+    {
+      "p_flip": 0.1,
+      "node_idx": 2314,
+      "predicted_class": 6,
+      "true_label": 3,
+      "is_correct": false,
+      "certified_radius": 0,
+      "reported_certified_radius": 0,
+      "pA_lower": 0.0005
+    }
+  ],
+  "sparse_asymmetric_certificate_accuracy_subset_sweep": [],
+  "sparse_asymmetric_certified_accuracy_curve": [],
+  "sparse_asymmetric_certificate_subset_rows": [],
+  "global_attack_results": [],
+  "nettack_examples": [],
+  "selected_focus_node": null,
+  "edge_drop_sweep": [],
+  "sparse_edge_flip_sweep": [],
+  "local_certificate_sweep": [],
+  "local_asymmetric_certificate_sweep": [],
+  "artifacts_dir": "results\\smoke_cert_progress"
+}

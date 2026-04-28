@@ -1,0 +1,383 @@
+{
+  "seed": 5,
+  "dataset": "Cora",
+  "num_nodes": 2708,
+  "num_edges": 5278,
+  "best_validation_accuracy": 0.38,
+  "best_test_accuracy": 0.397,
+  "clean_metrics": {
+    "train": 0.5571428571428572,
+    "val": 0.38,
+    "test": 0.397
+  },
+  "certified_accuracy_evaluation": {
+    "node_source": "test_mask",
+    "node_selection": "seeded random subset",
+    "max_nodes": 2,
+    "evaluated_nodes": 2,
+    "samples_per_node": 2,
+    "confidence_interval": "Wilson 95%",
+    "confidence_z": 1.96
+  },
+  "edge_drop_baseline": null,
+  "sparse_flip_baseline": null,
+  "local_certificate_accuracy_subset_nodes": [
+    1969,
+    2345
+  ],
+  "local_certificate_accuracy_subset_sweep": [],
+  "local_certified_accuracy_curve": [],
+  "local_certificate_subset_rows": [],
+  "clean_certificate_focus": {
+    "target_node": 1969,
+    "selection_source": "sparse-asymmetric",
+    "selection_score": [
+      0,
+      0.022360679774997897
+    ],
+    "true_label": 4
+  },
+  "clean_certificate_focus_sweep": [
+    {
+      "mode": "sparse-edge-flip",
+      "p_flip": "",
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "max_additions": 4,
+      "predicted_class": 4,
+      "true_label": 4,
+      "is_correct": true,
+      "reported_total_radius": 0,
+      "reported_delete_budget": 0,
+      "reported_add_budget": 0,
+      "pA_lower": 0.022360679774997897
+    }
+  ],
+  "sparse_asymmetric_certificate_accuracy_subset_sweep": [
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "max_additions": 4,
+      "evaluated_nodes": 2,
+      "correct_nodes": 1,
+      "correct_fraction": 0.5,
+      "correct_fraction_ci_lower": 0.09452865480086611,
+      "correct_fraction_ci_upper": 0.905471345199134,
+      "positive_certified_nodes": 0,
+      "positive_certified_accuracy": 0.0,
+      "positive_certified_accuracy_ci_lower": 0.0,
+      "positive_certified_accuracy_ci_upper": 0.6576280471103807,
+      "positive_delete_certified_nodes": 0,
+      "positive_delete_certified_accuracy": 0.0,
+      "positive_delete_certified_accuracy_ci_lower": 0.0,
+      "positive_delete_certified_accuracy_ci_upper": 0.6576280471103807,
+      "positive_add_certified_nodes": 0,
+      "positive_add_certified_accuracy": 0.0,
+      "positive_add_certified_accuracy_ci_lower": 0.0,
+      "positive_add_certified_accuracy_ci_upper": 0.6576280471103807,
+      "certified_fraction_on_correct": 0.0,
+      "certified_fraction_on_correct_ci_lower": 0.0,
+      "certified_fraction_on_correct_ci_upper": 0.7934567085261071,
+      "mean_certified_radius_on_correct": 0.0,
+      "mean_delete_radius_on_correct": 0.0,
+      "mean_add_radius_on_correct": 0.0
+    }
+  ],
+  "sparse_asymmetric_certified_accuracy_curve": [
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "total",
+      "radius": 0,
+      "certified_nodes": 1,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.5,
+      "certified_accuracy_ci_lower": 0.09452865480086611,
+      "certified_accuracy_ci_upper": 0.905471345199134
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "total",
+      "radius": 1,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "total",
+      "radius": 2,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "total",
+      "radius": 3,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "total",
+      "radius": 4,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "total",
+      "radius": 5,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "total",
+      "radius": 6,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "total",
+      "radius": 7,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "total",
+      "radius": 8,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "total",
+      "radius": 9,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "total",
+      "radius": 10,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "deletion_only",
+      "radius": 0,
+      "certified_nodes": 1,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.5,
+      "certified_accuracy_ci_lower": 0.09452865480086611,
+      "certified_accuracy_ci_upper": 0.905471345199134
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "deletion_only",
+      "radius": 1,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "deletion_only",
+      "radius": 2,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "deletion_only",
+      "radius": 3,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "deletion_only",
+      "radius": 4,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "deletion_only",
+      "radius": 5,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "addition_only",
+      "radius": 0,
+      "certified_nodes": 1,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.5,
+      "certified_accuracy_ci_lower": 0.09452865480086611,
+      "certified_accuracy_ci_upper": 0.905471345199134
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "addition_only",
+      "radius": 1,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "addition_only",
+      "radius": 2,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "addition_only",
+      "radius": 3,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "addition_only",
+      "radius": 4,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "radius_type": "addition_only",
+      "radius": 5,
+      "certified_nodes": 0,
+      "evaluated_nodes": 2,
+      "certified_accuracy": 0.0,
+      "certified_accuracy_ci_lower": 0.0,
+      "certified_accuracy_ci_upper": 0.6576280471103807
+    }
+  ],
+  "sparse_asymmetric_certificate_subset_rows": [
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "max_additions": 4,
+      "node_idx": 1969,
+      "predicted_class": 4,
+      "true_label": 4,
+      "is_correct": true,
+      "asymmetric_total_radius": 0,
+      "reported_asymmetric_total_radius": 0,
+      "max_delete_budget": 0,
+      "max_add_budget": 0,
+      "reported_asymmetric_delete_budget": 0,
+      "reported_asymmetric_add_budget": 0,
+      "pA_lower": 0.022360679774997897
+    },
+    {
+      "p_delete": 0.02,
+      "p_add": 1e-05,
+      "max_additions": 4,
+      "node_idx": 2345,
+      "predicted_class": 6,
+      "true_label": 3,
+      "is_correct": false,
+      "asymmetric_total_radius": 0,
+      "reported_asymmetric_total_radius": 0,
+      "max_delete_budget": 0,
+      "max_add_budget": 0,
+      "reported_asymmetric_delete_budget": 0,
+      "reported_asymmetric_add_budget": 0,
+      "pA_lower": 0.022360679774997897
+    }
+  ],
+  "global_attack_results": [],
+  "nettack_examples": [],
+  "selected_focus_node": null,
+  "edge_drop_sweep": [],
+  "sparse_edge_flip_sweep": [],
+  "local_certificate_sweep": [],
+  "local_asymmetric_certificate_sweep": [],
+  "artifacts_dir": "results\\smoke_cert_focus"
+}

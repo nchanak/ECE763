@@ -1,0 +1,5 @@
+p_flip,beta,clean_certified_radius,attacked_certified_radius,clean_reported_certified_radius,attacked_reported_certified_radius,clean_runner_up_radius,attacked_runner_up_radius,clean_pA_lower,attacked_pA_lower,clean_pred,attacked_pred,clean_is_correct,attacked_is_correct,true_label
+0.01,0.99,0,0,0,0,0,0,0.37088889487806287,0.299427272577828,3,3,False,False,2
+0.02,0.98,0,0,0,0,0,0,0.6043268660234468,0.49662996213573185,3,3,False,False,2
+0.05,0.95,0,0,0,0,0,0,0.665137422517813,0.6253158002263769,3,3,False,False,2
+0.1,0.9,0,0,0,0,0,0,0.7083659966645378,0.665137422517813,3,3,False,False,2

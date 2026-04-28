@@ -1,0 +1,4 @@
+p_delete,p_add,max_additions,clean_test_accuracy,attacked_test_accuracy,clean_margin,attacked_margin,clean_pred,attacked_pred,clean_is_correct,attacked_is_correct,true_label
+0.01,5e-06,64,0.817,0.816,0.896,1.0,0,2,1,0,0
+0.02,1e-05,96,0.817,0.816,0.866,1.0,0,2,1,0,0
+0.05,2e-05,160,0.816,0.815,0.6920000000000001,0.98,0,2,1,0,0

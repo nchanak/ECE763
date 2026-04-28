@@ -177,6 +177,10 @@ def evaluate_smoothed_node_with_edge_index(
     certificate_beta=None,
     certificate_alpha=0.001,
     certificate_max_radius=50,
+    certificate_p_delete=None,
+    certificate_p_add=None,
+    certificate_max_delete=None,
+    certificate_max_add=None,
 ):
     from src.smoothing import certify_node_from_votes, smoothed_predict_node
 
@@ -197,6 +201,10 @@ def evaluate_smoothed_node_with_edge_index(
         alpha=certificate_alpha,
         beta=certificate_beta,
         max_radius=certificate_max_radius,
+        p_delete=certificate_p_delete,
+        p_add=certificate_p_add,
+        max_delete=certificate_max_delete,
+        max_add=certificate_max_add,
     )
     certificate["predicted_class"] = smoothed_pred
     certificate["true_label"] = int(data.y[node_idx].item())
@@ -209,6 +217,28 @@ def evaluate_smoothed_node_with_edge_index(
     certificate["reported_runner_up_certified_radius"] = (
         int(certificate["runner_up_certified_radius"])
         if certificate["is_correct"] and certificate["runner_up_certified_radius"] is not None
+        else 0
+    )
+    asymmetric_certificate = certificate.get("asymmetric_certificate")
+    runner_up_asymmetric_certificate = certificate.get("runner_up_asymmetric_certificate")
+    certificate["reported_asymmetric_total_radius"] = (
+        int(asymmetric_certificate["total_radius"])
+        if certificate["is_correct"] and asymmetric_certificate is not None
+        else 0
+    )
+    certificate["reported_asymmetric_delete_budget"] = (
+        int(asymmetric_certificate["max_delete_budget"])
+        if certificate["is_correct"] and asymmetric_certificate is not None
+        else 0
+    )
+    certificate["reported_asymmetric_add_budget"] = (
+        int(asymmetric_certificate["max_add_budget"])
+        if certificate["is_correct"] and asymmetric_certificate is not None
+        else 0
+    )
+    certificate["reported_runner_up_asymmetric_total_radius"] = (
+        int(runner_up_asymmetric_certificate["total_radius"])
+        if certificate["is_correct"] and runner_up_asymmetric_certificate is not None
         else 0
     )
 

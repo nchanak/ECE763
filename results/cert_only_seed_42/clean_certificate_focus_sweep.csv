@@ -1,0 +1,4 @@
+mode,p_flip,p_delete,p_add,max_additions,predicted_class,true_label,is_correct,reported_total_radius,reported_delete_budget,reported_add_budget,pA_lower
+sparse-edge-flip,,0.01,5e-06,64,2,2,True,0,0,0,0.9924279113496888
+sparse-edge-flip,,0.02,1e-05,96,2,2,True,0,1,0,0.9924279113496888
+sparse-edge-flip,,0.05,2e-05,160,2,2,True,0,1,0,0.9924279113496888

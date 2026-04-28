@@ -1,0 +1,5 @@
+p_flip,evaluated_nodes,correct_nodes,correct_fraction,correct_fraction_ci_lower,correct_fraction_ci_upper,positive_certified_nodes,positive_certified_accuracy,positive_certified_accuracy_ci_lower,positive_certified_accuracy_ci_upper,certified_fraction_on_correct,certified_fraction_on_correct_ci_lower,certified_fraction_on_correct_ci_upper,mean_certified_radius_on_correct
+0.01,10,6,0.6,0.3126695474501863,0.8318224187964901,0,0.0,0.0,0.2775401687666165,0.0,0.0,0.3903430336530645,0.0
+0.02,10,5,0.5,0.2365895936154873,0.7634104063845127,0,0.0,0.0,0.2775401687666165,0.0,0.0,0.43449149475208104,0.0
+0.05,10,4,0.4,0.16817758120350967,0.6873304525498135,0,0.0,0.0,0.2775401687666165,0.0,0.0,0.48990002040399916,0.0
+0.1,10,4,0.4,0.16817758120350967,0.6873304525498135,0,0.0,0.0,0.2775401687666165,0.0,0.0,0.48990002040399916,0.0

@@ -1,0 +1,45 @@
+{
+  "seed": 1,
+  "dataset": "Cora",
+  "num_nodes": 2708,
+  "num_edges": 5278,
+  "best_validation_accuracy": 0.136,
+  "best_test_accuracy": 0.141,
+  "clean_metrics": {
+    "train": 0.22857142857142856,
+    "val": 0.136,
+    "test": 0.141
+  },
+  "certified_accuracy_evaluation": {
+    "node_source": "test_mask",
+    "node_selection": "seeded random subset",
+    "max_nodes": 1,
+    "evaluated_nodes": 1,
+    "samples_per_node": 1,
+    "confidence_interval": "Wilson 95%",
+    "confidence_z": 1.96
+  },
+  "edge_drop_baseline": {
+    "train": 0.22857142857142856,
+    "val": 0.136,
+    "test": 0.142
+  },
+  "sparse_flip_baseline": null,
+  "local_certificate_accuracy_subset_nodes": [
+    1845
+  ],
+  "local_certificate_accuracy_subset_sweep": [],
+  "local_certified_accuracy_curve": [],
+  "local_certificate_subset_rows": [],
+  "sparse_asymmetric_certificate_accuracy_subset_sweep": [],
+  "sparse_asymmetric_certified_accuracy_curve": [],
+  "sparse_asymmetric_certificate_subset_rows": [],
+  "global_attack_results": [],
+  "nettack_examples": [],
+  "selected_focus_node": null,
+  "edge_drop_sweep": [],
+  "sparse_edge_flip_sweep": [],
+  "local_certificate_sweep": [],
+  "local_asymmetric_certificate_sweep": [],
+  "artifacts_dir": "results\\smoke_cli\\seed_1"
+}

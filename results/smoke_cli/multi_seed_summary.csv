@@ -1,0 +1,4 @@
+metric,seeds,mean,std
+clean_test_accuracy,2,0.184,0.0608111831820431
+best_test_accuracy,2,0.184,0.0608111831820431
+edge_drop_smoothed_test_accuracy,2,0.183,0.05798275605729691

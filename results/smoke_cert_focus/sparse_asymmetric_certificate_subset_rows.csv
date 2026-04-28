@@ -1,0 +1,3 @@
+p_delete,p_add,max_additions,node_idx,predicted_class,true_label,is_correct,asymmetric_total_radius,reported_asymmetric_total_radius,max_delete_budget,max_add_budget,reported_asymmetric_delete_budget,reported_asymmetric_add_budget,pA_lower
+0.02,1e-05,4,1969,4,4,True,0,0,0,0,0,0,0.022360679774997897
+0.02,1e-05,4,2345,6,3,False,0,0,0,0,0,0,0.022360679774997897

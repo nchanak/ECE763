@@ -1,0 +1,16 @@
+metric,seeds,mean,std,budget,p_flip,p_delete,p_add,max_additions
+clean_test_accuracy,3,0.8076666666666666,0.008621678104251655,,,,,
+best_test_accuracy,3,0.815,0.006244997998398342,,,,,
+edge_drop_smoothed_test_accuracy,3,0.8073333333333332,0.00873689494805405,,,,,
+sparse_edge_flip_smoothed_test_accuracy,3,0.8076666666666666,0.008621678104251655,,,,,
+prbcd_attacked_test_accuracy,3,0.8023333333333333,0.007767453465154036,5,,,,
+prbcd_attacked_test_accuracy,3,0.798,0.006244997998398403,10,,,,
+prbcd_attacked_test_accuracy,3,0.7906666666666666,0.008621678104251716,20,,,,
+prbcd_attacked_test_accuracy,3,0.7656666666666666,0.005507570547286107,50,,,,
+symmetric_positive_certified_accuracy,3,0.0,0.0,,0.01,,,
+symmetric_positive_certified_accuracy,3,0.0,0.0,,0.02,,,
+symmetric_positive_certified_accuracy,3,0.0,0.0,,0.05,,,
+symmetric_positive_certified_accuracy,3,0.0,0.0,,0.1,,,
+sparse_asymmetric_positive_certified_accuracy,3,0.0,0.0,,,0.01,5e-06,64
+sparse_asymmetric_positive_certified_accuracy,3,0.0,0.0,,,0.02,1e-05,96
+sparse_asymmetric_positive_certified_accuracy,3,0.0,0.0,,,0.05,2e-05,160

@@ -1,0 +1,30 @@
+{
+  "dataset": "Cora",
+  "seeds": [
+    1,
+    2
+  ],
+  "smoothing_modes": [
+    "edge-drop"
+  ],
+  "summary": [
+    {
+      "metric": "clean_test_accuracy",
+      "seeds": 2,
+      "mean": 0.184,
+      "std": 0.0608111831820431
+    },
+    {
+      "metric": "best_test_accuracy",
+      "seeds": 2,
+      "mean": 0.184,
+      "std": 0.0608111831820431
+    },
+    {
+      "metric": "edge_drop_smoothed_test_accuracy",
+      "seeds": 2,
+      "mean": 0.183,
+      "std": 0.05798275605729691
+    }
+  ]
+}
