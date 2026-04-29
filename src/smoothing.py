@@ -50,12 +50,6 @@ def _pairs_from_ids(pair_ids: Sequence[int], num_nodes: int, device: torch.devic
     return torch.stack([row, col], dim=0)
 
 
-def _pair_id_set(pairs: torch.Tensor, num_nodes: int) -> Set[int]:
-    if pairs.numel() == 0:
-        return set()
-    return set(int(pair_id) for pair_id in _pair_ids(pairs, num_nodes).detach().cpu().tolist())
-
-
 def _pairs_to_edge_index(pairs: torch.Tensor) -> torch.Tensor:
     if pairs.numel() == 0:
         return pairs.new_empty((2, 0))
@@ -85,13 +79,14 @@ def _sample_addition_count(total_non_edges: int, p_add: float, max_additions: in
 
 def _sample_absent_pairs(
     num_nodes: int,
-    existing: Set[int],
+    existing_ids: torch.Tensor,
     num_pairs: int,
     device: torch.device,
 ) -> torch.Tensor:
     if num_pairs <= 0:
         return torch.empty((2, 0), dtype=torch.long, device=device)
 
+    existing = set(int(pair_id) for pair_id in existing_ids.detach().cpu().tolist())
     sampled: set[int] = set()
     total_possible = num_nodes * (num_nodes - 1) // 2
     target = min(num_pairs, total_possible - len(existing))
@@ -119,90 +114,6 @@ def _sample_absent_pairs(
     return _pairs_from_ids(sorted(sampled), num_nodes, device)
 
 
-def _sample_global_pairs(
-    unique_pairs: torch.Tensor,
-    num_nodes: int,
-    p_delete: float,
-    p_add: float,
-    max_additions: int,
-    existing_pair_ids: Optional[Set[int]] = None,
-) -> torch.Tensor:
-    device = unique_pairs.device
-    if unique_pairs.size(1) == 0:
-        return unique_pairs
-
-    keep_mask = torch.rand(unique_pairs.size(1), device=device) > p_delete
-    kept_pairs = unique_pairs[:, keep_mask]
-    kept_pairs = _ensure_nonempty_pairs(kept_pairs, unique_pairs)
-
-    if p_add <= 0.0:
-        return kept_pairs
-
-    total_possible = num_nodes * (num_nodes - 1) // 2
-    total_non_edges = total_possible - unique_pairs.size(1)
-    num_additions = _sample_addition_count(total_non_edges, p_add, max_additions)
-    addition_pairs = _sample_absent_pairs(
-        num_nodes=num_nodes,
-        # Additions are sampled from original non-edges, not from edges
-        # removed earlier in this same noisy draw.
-        existing=_pair_id_set(unique_pairs, num_nodes) if existing_pair_ids is None else existing_pair_ids,
-        num_pairs=num_additions,
-        device=device,
-    )
-
-    if addition_pairs.numel() == 0:
-        return kept_pairs
-
-    combined_pairs = torch.cat([kept_pairs, addition_pairs], dim=1)
-    return torch.unique(combined_pairs, dim=1)
-
-
-def _sample_target_node_pairs(
-    unique_pairs: torch.Tensor,
-    num_nodes: int,
-    target_node: int,
-    p_delete: float,
-    p_add: float,
-) -> torch.Tensor:
-    device = unique_pairs.device
-    if unique_pairs.size(1) == 0:
-        return unique_pairs
-
-    incident_mask = (unique_pairs[0] == target_node) | (unique_pairs[1] == target_node)
-    base_pairs = unique_pairs[:, ~incident_mask]
-    incident_pairs = unique_pairs[:, incident_mask]
-
-    neighbor_mask = torch.zeros(num_nodes, dtype=torch.bool, device=device)
-    if incident_pairs.size(1) > 0:
-        neighbors = torch.where(
-            incident_pairs[0] == target_node,
-            incident_pairs[1],
-            incident_pairs[0],
-        )
-        neighbor_mask[neighbors] = True
-
-    candidates = torch.arange(num_nodes, device=device)
-    candidates = candidates[candidates != target_node]
-    current_neighbors = neighbor_mask[candidates]
-    random_draws = torch.rand(candidates.size(0), device=device)
-
-    keep_existing = current_neighbors & (random_draws > p_delete)
-    add_missing = (~current_neighbors) & (random_draws < p_add)
-    selected = candidates[keep_existing | add_missing]
-
-    if selected.numel() == 0:
-        sampled_incident = unique_pairs.new_empty((2, 0))
-    else:
-        anchor = torch.full_like(selected, target_node)
-        sampled_incident = torch.stack(
-            [torch.minimum(anchor, selected), torch.maximum(anchor, selected)],
-            dim=0,
-        )
-
-    sampled_pairs = torch.cat([base_pairs, sampled_incident], dim=1)
-    return _ensure_nonempty_pairs(sampled_pairs, unique_pairs)
-
-
 def _prepare_target_node_sampler(
     unique_pairs: torch.Tensor,
     num_nodes: int,
@@ -224,7 +135,8 @@ def _prepare_target_node_sampler(
 
     candidates = torch.arange(num_nodes, device=device)
     candidates = candidates[candidates != target_node]
-    return base_pairs, candidates, neighbor_mask[candidates]
+    current_neighbors = neighbor_mask[candidates]
+    return base_pairs, candidates, current_neighbors
 
 
 def _sample_prepared_target_node_pairs(
@@ -236,14 +148,15 @@ def _sample_prepared_target_node_pairs(
     p_add: float,
     reference_pairs: torch.Tensor,
 ) -> torch.Tensor:
-    random_draws = torch.rand(candidates.size(0), device=candidates.device)
+    device = base_pairs.device
+    random_draws = torch.rand(candidates.size(0), device=device)
 
     keep_existing = current_neighbors & (random_draws > p_delete)
     add_missing = (~current_neighbors) & (random_draws < p_add)
     selected = candidates[keep_existing | add_missing]
 
     if selected.numel() == 0:
-        sampled_incident = reference_pairs.new_empty((2, 0))
+        sampled_incident = base_pairs.new_empty((2, 0))
     else:
         anchor = torch.full_like(selected, target_node)
         sampled_incident = torch.stack(
@@ -255,16 +168,74 @@ def _sample_prepared_target_node_pairs(
     return _ensure_nonempty_pairs(sampled_pairs, reference_pairs)
 
 
-def sample_smoothed_edge_index(
-    edge_index: torch.Tensor,
+def _sample_global_pairs(
+    unique_pairs: torch.Tensor,
+    num_nodes: int,
+    p_delete: float,
+    p_add: float,
+    max_additions: int,
+) -> torch.Tensor:
+    device = unique_pairs.device
+    if unique_pairs.size(1) == 0:
+        return unique_pairs
+
+    keep_mask = torch.rand(unique_pairs.size(1), device=device) > p_delete
+    kept_pairs = unique_pairs[:, keep_mask]
+    kept_pairs = _ensure_nonempty_pairs(kept_pairs, unique_pairs)
+
+    if p_add <= 0.0:
+        return kept_pairs
+
+    total_possible = num_nodes * (num_nodes - 1) // 2
+    total_non_edges = total_possible - unique_pairs.size(1)
+    num_additions = _sample_addition_count(total_non_edges, p_add, max_additions)
+    addition_pairs = _sample_absent_pairs(
+        num_nodes=num_nodes,
+        existing_ids=_pair_ids(unique_pairs, num_nodes),
+        num_pairs=num_additions,
+        device=device,
+    )
+
+    if addition_pairs.numel() == 0:
+        return kept_pairs
+
+    combined_pairs = torch.cat([kept_pairs, addition_pairs], dim=1)
+    return torch.unique(combined_pairs, dim=1)
+
+
+def _sample_target_node_pairs(
+    unique_pairs: torch.Tensor,
+    num_nodes: int,
+    target_node: int,
+    p_delete: float,
+    p_add: float,
+    target_sampler: Optional[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = None,
+) -> torch.Tensor:
+    if unique_pairs.size(1) == 0:
+        return unique_pairs
+
+    if target_sampler is None:
+        target_sampler = _prepare_target_node_sampler(unique_pairs, num_nodes, target_node)
+
+    return _sample_prepared_target_node_pairs(
+        base_pairs=target_sampler[0],
+        candidates=target_sampler[1],
+        current_neighbors=target_sampler[2],
+        target_node=target_node,
+        p_delete=p_delete,
+        p_add=p_add,
+        reference_pairs=unique_pairs,
+    )
+
+
+def _sample_smoothed_pairs(
+    unique_pairs: torch.Tensor,
     num_nodes: int,
     mode: str = "edge-drop",
     p_delete: float = 0.1,
     p_add: float = 0.0,
     target_node: Optional[int] = None,
     max_additions: int = 20000,
-    unique_pairs: Optional[torch.Tensor] = None,
-    existing_pair_ids: Optional[Set[int]] = None,
     target_sampler: Optional[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = None,
 ) -> torch.Tensor:
     if mode not in {"edge-drop", "sparse-edge-flip", "symmetric-edge-flip"}:
@@ -275,40 +246,106 @@ def sample_smoothed_edge_index(
     elif mode == "symmetric-edge-flip":
         p_add = p_delete
 
-    unique_pairs = _unique_undirected_pairs(edge_index) if unique_pairs is None else unique_pairs
+    if unique_pairs.size(1) == 0:
+        return unique_pairs
+
+    if target_node is not None:
+        return _sample_target_node_pairs(
+            unique_pairs=unique_pairs,
+            num_nodes=num_nodes,
+            target_node=target_node,
+            p_delete=p_delete,
+            p_add=p_add,
+            target_sampler=target_sampler,
+        )
+
+    return _sample_global_pairs(
+        unique_pairs=unique_pairs,
+        num_nodes=num_nodes,
+        p_delete=p_delete,
+        p_add=p_add,
+        max_additions=max_additions,
+    )
+
+
+def sample_smoothed_edge_index(
+    edge_index: torch.Tensor,
+    num_nodes: int,
+    mode: str = "edge-drop",
+    p_delete: float = 0.1,
+    p_add: float = 0.0,
+    target_node: Optional[int] = None,
+    max_additions: int = 20000,
+) -> torch.Tensor:
+    unique_pairs = _unique_undirected_pairs(edge_index)
     if unique_pairs.size(1) == 0:
         return edge_index
 
-    if target_node is not None:
-        if target_sampler is None:
-            sampled_pairs = _sample_target_node_pairs(
-                unique_pairs=unique_pairs,
-                num_nodes=num_nodes,
-                target_node=target_node,
-                p_delete=p_delete,
-                p_add=p_add,
-            )
-        else:
-            sampled_pairs = _sample_prepared_target_node_pairs(
-                base_pairs=target_sampler[0],
-                candidates=target_sampler[1],
-                current_neighbors=target_sampler[2],
-                target_node=target_node,
-                p_delete=p_delete,
-                p_add=p_add,
-                reference_pairs=unique_pairs,
-            )
-    else:
-        sampled_pairs = _sample_global_pairs(
-            unique_pairs=unique_pairs,
-            num_nodes=num_nodes,
-            p_delete=p_delete,
-            p_add=p_add,
-            max_additions=max_additions,
-            existing_pair_ids=existing_pair_ids,
-        )
+    sampled_pairs = _sample_smoothed_pairs(
+        unique_pairs=unique_pairs,
+        num_nodes=num_nodes,
+        mode=mode,
+        p_delete=p_delete,
+        p_add=p_add,
+        target_node=target_node,
+        max_additions=max_additions,
+    )
 
     return _pairs_to_edge_index(sampled_pairs)
+
+
+@torch.no_grad()
+def collect_smoothed_vote_counts_with_edge_index(
+    model,
+    x: torch.Tensor,
+    edge_index: torch.Tensor,
+    num_samples: int = 500,
+    batch_size: int = 50,
+    mode: str = "edge-drop",
+    p_delete: float = 0.1,
+    p_add: float = 0.0,
+    target_node: Optional[int] = None,
+    max_additions: int = 20000,
+):
+    model.eval()
+    device = x.device
+    clean_out = model(x, edge_index)
+    num_nodes = clean_out.size(0)
+    num_classes = clean_out.size(1)
+    unique_pairs = _unique_undirected_pairs(edge_index)
+    target_sampler = None
+    if target_node is not None and unique_pairs.size(1) > 0:
+        target_sampler = _prepare_target_node_sampler(unique_pairs, num_nodes, target_node)
+
+    if target_node is None:
+        vote_counts = torch.zeros(num_nodes, num_classes, dtype=torch.long, device=device)
+    else:
+        vote_counts = torch.zeros(num_classes, dtype=torch.long, device=device)
+
+    for start in range(0, num_samples, batch_size):
+        cur_batch = min(batch_size, num_samples - start)
+        for _ in range(cur_batch):
+            sampled_pairs = _sample_smoothed_pairs(
+                unique_pairs=unique_pairs,
+                num_nodes=num_nodes,
+                mode=mode,
+                p_delete=p_delete,
+                p_add=p_add,
+                target_node=target_node,
+                max_additions=max_additions,
+                target_sampler=target_sampler,
+            )
+            noisy_edge_index = _pairs_to_edge_index(sampled_pairs)
+            out = model(x, noisy_edge_index)
+
+            if target_node is None:
+                pred = out.argmax(dim=1)
+                vote_counts[torch.arange(num_nodes, device=device), pred] += 1
+            else:
+                pred = int(out[target_node].argmax().item())
+                vote_counts[pred] += 1
+
+    return vote_counts
 
 
 @torch.no_grad()
@@ -350,40 +387,21 @@ def smoothed_predict_with_edge_index(
     target_node: Optional[int] = None,
     max_additions: int = 20000,
 ):
-    model.eval()
-    device = x.device
-
-    clean_out = model(x, edge_index)
-    num_nodes = clean_out.size(0)
-    num_classes = clean_out.size(1)
-
-    vote_counts = torch.zeros(num_nodes, num_classes, dtype=torch.long, device=device)
-    unique_pairs = _unique_undirected_pairs(edge_index)
-    existing_pair_ids = _pair_id_set(unique_pairs, num_nodes) if p_add > 0.0 and target_node is None else None
-    target_sampler = (
-        _prepare_target_node_sampler(unique_pairs, num_nodes, target_node)
-        if target_node is not None and unique_pairs.size(1) > 0
-        else None
+    vote_counts = collect_smoothed_vote_counts_with_edge_index(
+        model=model,
+        x=x,
+        edge_index=edge_index,
+        num_samples=num_samples,
+        batch_size=batch_size,
+        mode=mode,
+        p_delete=p_delete,
+        p_add=p_add,
+        target_node=target_node,
+        max_additions=max_additions,
     )
 
-    for start in range(0, num_samples, batch_size):
-        cur_batch = min(batch_size, num_samples - start)
-        for _ in range(cur_batch):
-            noisy_edge_index = sample_smoothed_edge_index(
-                edge_index=edge_index,
-                num_nodes=num_nodes,
-                mode=mode,
-                p_delete=p_delete,
-                p_add=p_add,
-                target_node=target_node,
-                max_additions=max_additions,
-                unique_pairs=unique_pairs,
-                existing_pair_ids=existing_pair_ids,
-                target_sampler=target_sampler,
-            )
-            out = model(x, noisy_edge_index)
-            pred = out.argmax(dim=1)
-            vote_counts[torch.arange(num_nodes, device=device), pred] += 1
+    if target_node is not None:
+        return vote_counts, int(vote_counts.argmax().item())
 
     smoothed_pred = vote_counts.argmax(dim=1)
     return vote_counts, smoothed_pred
@@ -401,34 +419,32 @@ def smoothed_predict_node(
     p_add: float = 0.0,
     max_additions: int = 20000,
 ):
-    model.eval()
-    device = x.device
-    num_classes = model(x, edge_index).size(1)
-    vote_counts = torch.zeros(num_classes, dtype=torch.long, device=device)
-    unique_pairs = _unique_undirected_pairs(edge_index)
-    target_sampler = (
-        _prepare_target_node_sampler(unique_pairs, x.size(0), node_idx)
-        if unique_pairs.size(1) > 0
-        else None
+    vote_counts = collect_smoothed_vote_counts_with_edge_index(
+        model=model,
+        x=x,
+        edge_index=edge_index,
+        num_samples=num_samples,
+        batch_size=1,
+        mode=mode,
+        p_delete=p_delete,
+        p_add=p_add,
+        target_node=node_idx,
+        max_additions=max_additions,
     )
-
-    for _ in range(num_samples):
-        noisy_edge_index = sample_smoothed_edge_index(
-            edge_index=edge_index,
-            num_nodes=x.size(0),
-            mode=mode,
-            p_delete=p_delete,
-            p_add=p_add,
-            target_node=node_idx,
-            max_additions=max_additions,
-            unique_pairs=unique_pairs,
-            target_sampler=target_sampler,
-        )
-        pred = model(x, noisy_edge_index)[node_idx].argmax().item()
-        vote_counts[pred] += 1
 
     smoothed_pred = int(torch.argmax(vote_counts).item())
     return vote_counts, smoothed_pred
+
+
+def target_node_pair_counts(edge_index: torch.Tensor, num_nodes: int, target_node: int) -> Tuple[int, int]:
+    unique_pairs = _unique_undirected_pairs(edge_index)
+    if unique_pairs.numel() == 0:
+        return 0, max(num_nodes - 1, 0)
+
+    incident_mask = (unique_pairs[0] == target_node) | (unique_pairs[1] == target_node)
+    num_present = int(incident_mask.sum().item())
+    num_absent = max(num_nodes - 1 - num_present, 0)
+    return num_present, num_absent
 
 
 @lru_cache(maxsize=None)
@@ -470,68 +486,40 @@ def _transfer_probability(masses: Sequence[Tuple[float, float, float]], x_probab
     return transferred
 
 
-def _binomial_probability(count: int, total: int, prob: float) -> float:
-    if count < 0 or count > total:
-        return 0.0
-    if prob <= 0.0:
-        return 1.0 if count == 0 else 0.0
-    if prob >= 1.0:
-        return 1.0 if count == total else 0.0
-    return math.comb(total, count) * (prob ** count) * ((1.0 - prob) ** (total - count))
+def _probability_ratio(prob_x: float, prob_y: float) -> float:
+    if prob_x <= 0.0 and prob_y <= 0.0:
+        return 1.0
+    if prob_y <= 0.0:
+        return float("inf")
+    return prob_x / prob_y
 
 
-@lru_cache(maxsize=None)
+def _binomial_probability(trials: int, successes: int, probability: float) -> float:
+    return math.comb(trials, successes) * (probability ** successes) * ((1.0 - probability) ** (trials - successes))
+
+
 def _asymmetric_region_masses(
     delete_budget: int,
     add_budget: int,
     p_delete: float,
     p_add: float,
-) -> Tuple[Tuple[float, float, float], ...]:
-    """Masses for clean-vs-adversarial smoothing on changed local edge bits.
-
-    delete_budget counts original edges removed by the adversary.
-    add_budget counts original non-edges added by the adversary.
-    Each region is grouped by the number of sampled-present bits in both groups.
-    """
-
+) -> List[Tuple[float, float, float]]:
     masses: List[Tuple[float, float, float]] = []
-    clean_edge_present = 1.0 - p_delete
-    adv_deleted_edge_present = p_add
-    clean_nonedge_present = p_add
-    adv_added_edge_present = 1.0 - p_delete
 
-    for present_deleted_edges in range(delete_budget + 1):
-        prob_x_deleted = _binomial_probability(
-            present_deleted_edges,
-            delete_budget,
-            clean_edge_present,
-        )
-        prob_y_deleted = _binomial_probability(
-            present_deleted_edges,
-            delete_budget,
-            adv_deleted_edge_present,
-        )
+    for preserved_deletes in range(delete_budget + 1):
+        prob_x_delete = _binomial_probability(delete_budget, preserved_deletes, 1.0 - p_delete)
+        prob_y_delete = _binomial_probability(delete_budget, preserved_deletes, p_add)
 
-        for present_added_edges in range(add_budget + 1):
-            prob_x_added = _binomial_probability(
-                present_added_edges,
-                add_budget,
-                clean_nonedge_present,
-            )
-            prob_y_added = _binomial_probability(
-                present_added_edges,
-                add_budget,
-                adv_added_edge_present,
-            )
-            prob_x = prob_x_deleted * prob_x_added
-            prob_y = prob_y_deleted * prob_y_added
-            if prob_x == 0.0 and prob_y == 0.0:
-                continue
-            ratio = float("inf") if prob_y == 0.0 else prob_x / prob_y
-            masses.append((ratio, prob_x, prob_y))
+        for induced_adds in range(add_budget + 1):
+            prob_x_add = _binomial_probability(add_budget, induced_adds, p_add)
+            prob_y_add = _binomial_probability(add_budget, induced_adds, 1.0 - p_delete)
+
+            prob_x = prob_x_delete * prob_x_add
+            prob_y = prob_y_delete * prob_y_add
+            masses.append((_probability_ratio(prob_x, prob_y), prob_x, prob_y))
 
     masses.sort(key=lambda item: item[0], reverse=True)
-    return tuple(masses)
+    return masses
 
 
 def certify_radius_from_bounds(
@@ -540,6 +528,13 @@ def certify_radius_from_bounds(
     beta: float,
     max_radius: int = 50,
 ) -> int:
+    """Return the largest symmetric certified radius.
+
+    `beta` is treated as the per-edge flip probability so callers can pass the
+    same `p_flip` value used by symmetric smoothing. The current construction is
+    invariant under swapping `beta` and `1 - beta`, but keeping the flip-rate
+    convention matches the rest of the API and avoids future ambiguity.
+    """
     certified_radius = 0
 
     for radius in range(max_radius + 1):
@@ -579,69 +574,69 @@ def certify_asymmetric_radius_from_bounds(
     p_upper: float,
     p_delete: float,
     p_add: float,
-    max_delete: int = 10,
-    max_add: int = 10,
+    num_present: Optional[int] = None,
+    num_absent: Optional[int] = None,
+    max_radius: int = 50,
+    max_delete: Optional[int] = None,
+    max_add: Optional[int] = None,
 ) -> Dict[str, object]:
-    certified_budget_set = set()
-    max_total_radius = 0
+    if num_present is None:
+        num_present = max_radius
+    if num_absent is None:
+        num_absent = max_radius
 
-    for delete_budget in range(max_delete + 1):
-        for add_budget in range(max_add + 1):
-            is_certified = certify_asymmetric_budget_from_bounds(
+    delete_limit = min(max_radius, num_present)
+    add_limit = min(max_radius, num_absent)
+    if max_delete is not None:
+        delete_limit = min(delete_limit, max_delete)
+    if max_add is not None:
+        add_limit = min(add_limit, max_add)
+
+    total_radius = 0
+    max_delete_budget = 0
+    max_add_budget = 0
+    certified_budgets = []
+
+    for delete_budget in range(delete_limit + 1):
+        for add_budget in range(add_limit + 1):
+            if delete_budget + add_budget > max_radius:
+                continue
+            if not certify_asymmetric_budget_from_bounds(
                 p_lower=p_lower,
                 p_upper=p_upper,
                 p_delete=p_delete,
                 p_add=p_add,
                 delete_budget=delete_budget,
                 add_budget=add_budget,
-            )
-            if is_certified:
-                certified_budget_set.add((delete_budget, add_budget))
-
-    for radius in range(max_delete + max_add + 1):
-        radius_is_certified = True
-        for delete_budget in range(min(max_delete, radius) + 1):
-            add_budget = radius - delete_budget
-            if add_budget > max_add:
+            ):
                 continue
-            if (delete_budget, add_budget) not in certified_budget_set:
-                radius_is_certified = False
-                break
-        if radius_is_certified:
-            max_total_radius = radius
-        else:
-            break
 
-    max_deletions_at_zero_additions = 0
-    for delete_budget in range(max_delete + 1):
-        if (delete_budget, 0) in certified_budget_set:
-            max_deletions_at_zero_additions = delete_budget
-        else:
-            break
-
-    max_additions_at_zero_deletions = 0
-    for add_budget in range(max_add + 1):
-        if (0, add_budget) in certified_budget_set:
-            max_additions_at_zero_deletions = add_budget
-        else:
-            break
+            certified_budgets.append((delete_budget, add_budget))
+            total_radius = max(total_radius, delete_budget + add_budget)
+            if add_budget == 0:
+                max_delete_budget = max(max_delete_budget, delete_budget)
+            if delete_budget == 0:
+                max_add_budget = max(max_add_budget, add_budget)
 
     return {
-        "certified_budgets": sorted(certified_budget_set),
-        "total_radius": max_total_radius,
-        "max_delete_budget": max_deletions_at_zero_additions,
-        "max_add_budget": max_additions_at_zero_deletions,
+        "total_radius": int(total_radius),
+        "max_delete_budget": int(max_delete_budget),
+        "max_add_budget": int(max_add_budget),
+        "certified_budgets": certified_budgets,
     }
 
 
 def certify_node_from_votes(
     vote_counts: torch.Tensor,
     node_idx: Optional[int] = None,
+    predicted_class: Optional[int] = None,
     alpha: float = 0.001,
     beta: Optional[float] = None,
-    max_radius: int = 50,
     p_delete: Optional[float] = None,
     p_add: Optional[float] = None,
+    num_present: Optional[int] = None,
+    num_absent: Optional[int] = None,
+    max_radius: int = 50,
     max_delete: Optional[int] = None,
     max_add: Optional[int] = None,
 ) -> Dict[str, float]:
@@ -653,11 +648,22 @@ def certify_node_from_votes(
         votes = vote_counts
 
     sorted_votes, sorted_classes = torch.sort(votes, descending=True)
+    certification_top_class = int(sorted_classes[0].item())
 
-    top_class = int(sorted_classes[0].item())
-    runner_up_class = int(sorted_classes[1].item()) if len(sorted_classes) > 1 else top_class
-    n_a = int(sorted_votes[0].item())
-    n_b = int(sorted_votes[1].item()) if len(sorted_votes) > 1 else 0
+    top_class = int(predicted_class) if predicted_class is not None else certification_top_class
+    n_a = int(votes[top_class].item())
+
+    other_classes = torch.arange(votes.numel(), device=votes.device)
+    other_classes = other_classes[other_classes != top_class]
+    if other_classes.numel() > 0:
+        other_votes = votes[other_classes]
+        best_other_idx = int(torch.argmax(other_votes).item())
+        runner_up_class = int(other_classes[best_other_idx].item())
+        n_b = int(other_votes[best_other_idx].item())
+    else:
+        runner_up_class = top_class
+        n_b = 0
+
     total = int(votes.sum().item())
 
     p_a_hat = n_a / total if total > 0 else 0.0
@@ -666,12 +672,44 @@ def certify_node_from_votes(
     p_a_lower = _one_sided_clopper_pearson_lower(n_a, total, alpha_tail)
     p_b_upper = _one_sided_clopper_pearson_upper(n_b, total, alpha_tail)
     p_rest_upper = max(0.0, 1.0 - p_a_lower)
+    abstained = p_a_lower <= p_rest_upper
 
     certified_radius = None
     runner_up_radius = None
+    certificate_kind = None
     asymmetric_certificate = None
     runner_up_asymmetric_certificate = None
-    if beta is not None:
+    if p_delete is not None and p_add is not None and num_present is not None and num_absent is not None:
+        certificate_kind = "asymmetric"
+    elif beta is not None:
+        certificate_kind = "symmetric"
+
+    if certificate_kind == "asymmetric" and not abstained:
+        asymmetric_certificate = certify_asymmetric_radius_from_bounds(
+            p_lower=p_a_lower,
+            p_upper=p_rest_upper,
+            p_delete=p_delete,
+            p_add=p_add,
+            num_present=num_present,
+            num_absent=num_absent,
+            max_radius=max_radius,
+            max_delete=max_delete,
+            max_add=max_add,
+        )
+        runner_up_asymmetric_certificate = certify_asymmetric_radius_from_bounds(
+            p_lower=p_a_lower,
+            p_upper=min(p_b_upper, p_rest_upper),
+            p_delete=p_delete,
+            p_add=p_add,
+            num_present=num_present,
+            num_absent=num_absent,
+            max_radius=max_radius,
+            max_delete=max_delete,
+            max_add=max_add,
+        )
+        certified_radius = int(asymmetric_certificate["total_radius"])
+        runner_up_radius = int(runner_up_asymmetric_certificate["total_radius"])
+    elif certificate_kind == "symmetric" and not abstained:
         certified_radius = certify_radius_from_bounds(
             p_lower=p_a_lower,
             p_upper=p_rest_upper,
@@ -684,26 +722,10 @@ def certify_node_from_votes(
             beta=beta,
             max_radius=max_radius,
         )
-    if p_delete is not None and p_add is not None:
-        asymmetric_certificate = certify_asymmetric_radius_from_bounds(
-            p_lower=p_a_lower,
-            p_upper=p_rest_upper,
-            p_delete=p_delete,
-            p_add=p_add,
-            max_delete=max_radius if max_delete is None else max_delete,
-            max_add=max_radius if max_add is None else max_add,
-        )
-        runner_up_asymmetric_certificate = certify_asymmetric_radius_from_bounds(
-            p_lower=p_a_lower,
-            p_upper=min(p_b_upper, p_rest_upper),
-            p_delete=p_delete,
-            p_add=p_add,
-            max_delete=max_radius if max_delete is None else max_delete,
-            max_add=max_radius if max_add is None else max_add,
-        )
 
     return {
         "top_class": top_class,
+        "certification_top_class": certification_top_class,
         "runner_up_class": runner_up_class,
         "nA": n_a,
         "nB": n_b,
@@ -715,6 +737,8 @@ def certify_node_from_votes(
         "p_rest_upper": p_rest_upper,
         "margin": p_a_hat - p_b_hat,
         "lower_margin": p_a_lower - p_rest_upper,
+        "abstained": abstained,
+        "certificate_kind": certificate_kind,
         "confidence_level": 1.0 - alpha,
         "certified_radius": certified_radius,
         "runner_up_certified_radius": runner_up_radius,
@@ -742,7 +766,10 @@ def build_certified_accuracy_curve(
 
     for radius in range(max_radius + 1):
         certified_correct = sum(
-            bool(row.get("is_correct", False)) and int(row.get("certified_radius") or 0) >= radius
+            bool(row.get("is_correct", False))
+            and not bool(row.get("abstained", False))
+            and row.get("certified_radius") is not None
+            and int(row["certified_radius"]) >= radius
             for row in certificate_rows
         )
         curve.append(
@@ -757,6 +784,7 @@ def build_certified_accuracy_curve(
 
 def summarize_certificates(
     vote_counts: torch.Tensor,
+    predicted_labels: Optional[torch.Tensor] = None,
     true_labels: Optional[torch.Tensor] = None,
     mask: Optional[torch.Tensor] = None,
     alpha: float = 0.001,
@@ -775,40 +803,48 @@ def summarize_certificates(
     certified_radii = []
     correct_radii = []
     correct_nodes = 0
+    abstained_nodes = 0
+    non_abstain_correct_nodes = 0
 
     for node_idx in node_indices.tolist():
         certificate = certify_node_from_votes(
             vote_counts=vote_counts,
             node_idx=node_idx,
+            predicted_class=(int(predicted_labels[node_idx].item()) if predicted_labels is not None else None),
             alpha=alpha,
             beta=beta,
             max_radius=max_radius,
         )
         certificate["node_idx"] = node_idx
+        certificate["predicted_class"] = int(certificate["top_class"])
+        if certificate["abstained"]:
+            abstained_nodes += 1
 
         if true_labels is not None:
             true_label = int(true_labels[node_idx].item())
-            is_correct = certificate["top_class"] == true_label
+            is_correct = certificate["predicted_class"] == true_label
             certificate["true_label"] = true_label
             certificate["is_correct"] = is_correct
             certificate["reported_certified_radius"] = (
                 int(certificate["certified_radius"])
-                if is_correct and certificate["certified_radius"] is not None
+                if is_correct and not certificate["abstained"] and certificate["certified_radius"] is not None
                 else 0
             )
             certificate["reported_runner_up_certified_radius"] = (
                 int(certificate["runner_up_certified_radius"])
-                if is_correct and certificate["runner_up_certified_radius"] is not None
+                if is_correct and not certificate["abstained"] and certificate["runner_up_certified_radius"] is not None
                 else 0
             )
             if is_correct:
                 correct_nodes += 1
+                if not certificate["abstained"]:
+                    non_abstain_correct_nodes += 1
         else:
             is_correct = False
             certificate["reported_certified_radius"] = int(certificate["certified_radius"] or 0)
             certificate["reported_runner_up_certified_radius"] = int(certificate["runner_up_certified_radius"] or 0)
 
-        if certificate["certified_radius"] is not None:
+        if not certificate["abstained"] and certificate["certified_radius"] is not None:
             certified_radii.append(certificate["certified_radius"])
             if is_correct:
                 correct_radii.append(certificate["certified_radius"])
@@ -837,6 +873,9 @@ def summarize_certificates(
         "evaluated_nodes": total_nodes,
         "correct_nodes": correct_nodes,
         "correct_fraction": correct_nodes / total_nodes if total_nodes > 0 else 0.0,
+        "abstained_nodes": abstained_nodes,
+        "abstained_fraction": abstained_nodes / total_nodes if total_nodes > 0 else 0.0,
+        "non_abstain_accuracy": non_abstain_correct_nodes / max(total_nodes - abstained_nodes, 1),
         "certified_fraction": certified_fraction,
         "positive_certified_accuracy": certified_accuracy_positive,
         "certified_fraction_on_correct": certified_fraction_on_correct,

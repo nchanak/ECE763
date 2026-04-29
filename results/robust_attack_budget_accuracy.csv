@@ -1,0 +1,5 @@
+variant,budget,test_accuracy,flipped_edges
+matched-sparse-noisy-training,5,0.81,5
+matched-sparse-noisy-training,10,0.808,10
+matched-sparse-noisy-training,20,0.795,20
+matched-sparse-noisy-training,50,0.77,50

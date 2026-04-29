@@ -1,5 +1,5 @@
-p_flip,beta,clean_certified_radius,attacked_certified_radius,clean_reported_certified_radius,attacked_reported_certified_radius,clean_runner_up_radius,attacked_runner_up_radius,clean_pA_lower,attacked_pA_lower,clean_pred,attacked_pred,clean_is_correct,attacked_is_correct,true_label
-0.01,0.99,0,0,0,0,0,0,0.4122141027985168,0.2923881488195285,3,1,False,False,2
-0.02,0.98,0,0,0,0,0,0,0.6226830767919063,0.45164457904504357,3,3,False,False,2
-0.05,0.95,0,0,0,0,0,0,0.6491323392900801,0.6121783797830751,3,3,False,False,2
-0.1,0.9,0,0,0,0,0,0,0.7001958048914219,0.6597906487596125,3,3,False,False,2
+model_variant,attack_variant,target_node,p_flip,beta,clean_abstained,attacked_abstained,clean_certified_radius,attacked_certified_radius,clean_reported_certified_radius,attacked_reported_certified_radius,clean_reported_asymmetric_total_radius,attacked_reported_asymmetric_total_radius,clean_reported_asymmetric_delete_budget,attacked_reported_asymmetric_delete_budget,clean_reported_asymmetric_add_budget,attacked_reported_asymmetric_add_budget,clean_reported_runner_up_asymmetric_total_radius,attacked_reported_runner_up_asymmetric_total_radius,clean_runner_up_radius,attacked_runner_up_radius,clean_pA_lower,attacked_pA_lower,clean_pred,attacked_pred,clean_is_correct,attacked_is_correct,true_label
+clean-training,clean-training,2488,0.01,0.01,False,False,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.9752825416552515,0.7497258336238553,1,1,True,True,1
+clean-training,clean-training,2488,0.02,0.02,False,False,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.9811771485586084,0.9752825416552515,1,1,True,True,1
+clean-training,clean-training,2488,0.05,0.05,False,False,1,1,1,1,0,0,0,0,0,0,0,0,1,1,0.9811771485586084,0.9811771485586084,1,1,True,True,1
+clean-training,clean-training,2488,0.1,0.1,False,False,1,1,1,1,0,0,0,0,0,0,0,0,1,1,0.9811771485586084,0.9811771485586084,1,1,True,True,1

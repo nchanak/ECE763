@@ -1,3 +1,5 @@
+from typing import cast
+
 import torch
 import torch.nn.functional as F
 
@@ -11,11 +13,59 @@ def _compute_split_metrics(pred, labels, masks):
     return metrics
 
 
+def _compute_split_metrics_with_abstentions(pred, labels, masks, abstained_mask):
+    metrics = _compute_split_metrics(pred=pred, labels=labels, masks=masks)
+
+    for split_name, mask in masks.items():
+        total = int(mask.sum())
+        split_abstained = int((abstained_mask & mask).sum().item())
+        non_abstain = total - split_abstained
+        correct_non_abstain = int(((pred == labels) & mask & ~abstained_mask).sum().item())
+
+        metrics[split_name] = correct_non_abstain / total if total > 0 else 0.0
+        metrics[f"{split_name}_abstention"] = split_abstained / total if total > 0 else 0.0
+        metrics[f"{split_name}_non_abstain_accuracy"] = (
+            correct_non_abstain / non_abstain if non_abstain > 0 else 0.0
+        )
+
+    return metrics
+
+
 def train_one_epoch(model, data, optimizer):
     model.train()
     optimizer.zero_grad()
 
     out = model(data.x, data.edge_index)
+    loss = F.cross_entropy(out[data.train_mask], data.y[data.train_mask])
+
+    loss.backward()
+    optimizer.step()
+    return loss.item()
+
+
+def train_one_epoch_with_noise(
+    model,
+    data,
+    optimizer,
+    mode="sparse-edge-flip",
+    p_delete=0.02,
+    p_add=0.0,
+    max_additions=20000,
+):
+    from src.smoothing import sample_smoothed_edge_index
+
+    model.train()
+    optimizer.zero_grad()
+
+    noisy_edge_index = sample_smoothed_edge_index(
+        edge_index=data.edge_index,
+        num_nodes=data.num_nodes,
+        mode=mode,
+        p_delete=p_delete,
+        p_add=p_add,
+        max_additions=max_additions,
+    )
+    out = model(data.x, noisy_edge_index)
     loss = F.cross_entropy(out[data.train_mask], data.y[data.train_mask])
 
     loss.backward()
@@ -72,39 +122,80 @@ def evaluate_smoothed(
     certificate_beta=None,
     certificate_alpha=0.001,
     certificate_max_radius=50,
+    selection_num_samples=None,
+    certification_num_samples=None,
+    selection_batch_size=None,
+    certification_batch_size=None,
 ):
     from src.smoothing import smoothed_predict, summarize_certificates
 
-    vote_counts, smoothed_pred = smoothed_predict(
+    selection_num_samples = selection_num_samples or num_samples
+    selection_batch_size = selection_batch_size or batch_size
+
+    selection_vote_counts, smoothed_pred = smoothed_predict(
         model=model,
         data=data,
-        num_samples=num_samples,
-        batch_size=batch_size,
+        num_samples=selection_num_samples,
+        batch_size=selection_batch_size,
         mode=mode,
         p_delete=p_delete,
         p_add=p_add,
         max_additions=max_additions,
     )
 
-    metrics = _compute_split_metrics(
-        pred=smoothed_pred,
-        labels=data.y,
-        masks={
-            "train": data.train_mask,
-            "val": data.val_mask,
-            "test": data.test_mask,
-        },
-    )
-
+    vote_counts = selection_vote_counts
+    abstained_mask = None
     certificate_summary = None
+
     if certificate_beta is not None:
+        certification_num_samples = certification_num_samples or num_samples
+        certification_batch_size = certification_batch_size or batch_size
+        vote_counts, _ = smoothed_predict(
+            model=model,
+            data=data,
+            num_samples=certification_num_samples,
+            batch_size=certification_batch_size,
+            mode=mode,
+            p_delete=p_delete,
+            p_add=p_add,
+            max_additions=max_additions,
+        )
+
+        _, all_certificate_rows = summarize_certificates(
+            vote_counts=vote_counts,
+            predicted_labels=smoothed_pred,
+            true_labels=data.y,
+            alpha=certificate_alpha,
+            beta=certificate_beta,
+            max_radius=certificate_max_radius,
+        )
+        abstained_mask = torch.zeros(data.y.size(0), dtype=torch.bool, device=data.y.device)
+        for row in all_certificate_rows:
+            abstained_mask[row["node_idx"]] = bool(row["abstained"])
+
         certificate_summary, _ = summarize_certificates(
             vote_counts=vote_counts,
+            predicted_labels=smoothed_pred,
             true_labels=data.y,
             mask=data.test_mask,
             alpha=certificate_alpha,
             beta=certificate_beta,
             max_radius=certificate_max_radius,
+        )
+
+    masks = {
+        "train": data.train_mask,
+        "val": data.val_mask,
+        "test": data.test_mask,
+    }
+    if abstained_mask is None:
+        metrics = _compute_split_metrics(pred=smoothed_pred, labels=data.y, masks=masks)
+    else:
+        metrics = _compute_split_metrics_with_abstentions(
+            pred=smoothed_pred,
+            labels=data.y,
+            masks=masks,
+            abstained_mask=abstained_mask,
         )
 
     return metrics, vote_counts, smoothed_pred, certificate_summary
@@ -124,40 +215,82 @@ def evaluate_smoothed_with_edge_index(
     certificate_beta=None,
     certificate_alpha=0.001,
     certificate_max_radius=50,
+    selection_num_samples=None,
+    certification_num_samples=None,
+    selection_batch_size=None,
+    certification_batch_size=None,
 ):
     from src.smoothing import smoothed_predict_with_edge_index, summarize_certificates
 
-    vote_counts, smoothed_pred = smoothed_predict_with_edge_index(
+    selection_num_samples = selection_num_samples or num_samples
+    selection_batch_size = selection_batch_size or batch_size
+
+    selection_vote_counts, smoothed_pred = smoothed_predict_with_edge_index(
         model=model,
         x=data.x,
         edge_index=edge_index,
-        num_samples=num_samples,
-        batch_size=batch_size,
+        num_samples=selection_num_samples,
+        batch_size=selection_batch_size,
         mode=mode,
         p_delete=p_delete,
         p_add=p_add,
         max_additions=max_additions,
     )
 
-    metrics = _compute_split_metrics(
-        pred=smoothed_pred,
-        labels=data.y,
-        masks={
-            "train": data.train_mask,
-            "val": data.val_mask,
-            "test": data.test_mask,
-        },
-    )
-
+    vote_counts = selection_vote_counts
+    abstained_mask = None
     certificate_summary = None
+
     if certificate_beta is not None:
+        certification_num_samples = certification_num_samples or num_samples
+        certification_batch_size = certification_batch_size or batch_size
+        vote_counts, _ = smoothed_predict_with_edge_index(
+            model=model,
+            x=data.x,
+            edge_index=edge_index,
+            num_samples=certification_num_samples,
+            batch_size=certification_batch_size,
+            mode=mode,
+            p_delete=p_delete,
+            p_add=p_add,
+            max_additions=max_additions,
+        )
+
+        _, all_certificate_rows = summarize_certificates(
+            vote_counts=vote_counts,
+            predicted_labels=smoothed_pred,
+            true_labels=data.y,
+            alpha=certificate_alpha,
+            beta=certificate_beta,
+            max_radius=certificate_max_radius,
+        )
+        abstained_mask = torch.zeros(data.y.size(0), dtype=torch.bool, device=data.y.device)
+        for row in all_certificate_rows:
+            abstained_mask[row["node_idx"]] = bool(row["abstained"])
+
         certificate_summary, _ = summarize_certificates(
             vote_counts=vote_counts,
+            predicted_labels=smoothed_pred,
             true_labels=data.y,
             mask=data.test_mask,
             alpha=certificate_alpha,
             beta=certificate_beta,
             max_radius=certificate_max_radius,
+        )
+
+    masks = {
+        "train": data.train_mask,
+        "val": data.val_mask,
+        "test": data.test_mask,
+    }
+    if abstained_mask is None:
+        metrics = _compute_split_metrics(pred=smoothed_pred, labels=data.y, masks=masks)
+    else:
+        metrics = _compute_split_metrics_with_abstentions(
+            pred=smoothed_pred,
+            labels=data.y,
+            masks=masks,
+            abstained_mask=abstained_mask,
         )
 
     return metrics, vote_counts, smoothed_pred, certificate_summary
@@ -175,34 +308,64 @@ def evaluate_smoothed_node_with_edge_index(
     p_add=0.0,
     max_additions=20000,
     certificate_beta=None,
-    certificate_alpha=0.001,
-    certificate_max_radius=50,
     certificate_p_delete=None,
     certificate_p_add=None,
+    certificate_alpha=0.001,
+    certificate_max_radius=50,
+    selection_num_samples=None,
+    certification_num_samples=None,
     certificate_max_delete=None,
     certificate_max_add=None,
 ):
-    from src.smoothing import certify_node_from_votes, smoothed_predict_node
+    from src.smoothing import certify_node_from_votes, smoothed_predict_node, target_node_pair_counts
 
-    vote_counts, smoothed_pred = smoothed_predict_node(
+    selection_num_samples = selection_num_samples or num_samples
+    selection_vote_counts, smoothed_pred = smoothed_predict_node(
         model=model,
         x=data.x,
         edge_index=edge_index,
         node_idx=node_idx,
-        num_samples=num_samples,
+        num_samples=selection_num_samples,
         mode=mode,
         p_delete=p_delete,
         p_add=p_add,
         max_additions=max_additions,
     )
 
+    vote_counts = selection_vote_counts
+    if certificate_beta is not None or (certificate_p_delete is not None and certificate_p_add is not None):
+        certification_num_samples = certification_num_samples or num_samples
+        vote_counts, _ = smoothed_predict_node(
+            model=model,
+            x=data.x,
+            edge_index=edge_index,
+            node_idx=node_idx,
+            num_samples=certification_num_samples,
+            mode=mode,
+            p_delete=p_delete,
+            p_add=p_add,
+            max_additions=max_additions,
+        )
+
+    num_present = None
+    num_absent = None
+    if certificate_p_delete is not None and certificate_p_add is not None:
+        num_present, num_absent = target_node_pair_counts(
+            edge_index=edge_index,
+            num_nodes=data.num_nodes,
+            target_node=node_idx,
+        )
+
     certificate = certify_node_from_votes(
         vote_counts=vote_counts,
+        predicted_class=smoothed_pred,
         alpha=certificate_alpha,
         beta=certificate_beta,
-        max_radius=certificate_max_radius,
         p_delete=certificate_p_delete,
         p_add=certificate_p_add,
+        num_present=num_present,
+        num_absent=num_absent,
+        max_radius=certificate_max_radius,
         max_delete=certificate_max_delete,
         max_add=certificate_max_add,
     )
@@ -211,34 +374,37 @@ def evaluate_smoothed_node_with_edge_index(
     certificate["is_correct"] = smoothed_pred == certificate["true_label"]
     certificate["reported_certified_radius"] = (
         int(certificate["certified_radius"])
-        if certificate["is_correct"] and certificate["certified_radius"] is not None
+        if certificate["is_correct"] and not certificate["abstained"] and certificate["certified_radius"] is not None
         else 0
     )
     certificate["reported_runner_up_certified_radius"] = (
         int(certificate["runner_up_certified_radius"])
-        if certificate["is_correct"] and certificate["runner_up_certified_radius"] is not None
+        if certificate["is_correct"] and not certificate["abstained"] and certificate["runner_up_certified_radius"] is not None
         else 0
     )
-    asymmetric_certificate = certificate.get("asymmetric_certificate")
-    runner_up_asymmetric_certificate = certificate.get("runner_up_asymmetric_certificate")
+    asymmetric_certificate = cast(dict[str, object] | None, certificate.get("asymmetric_certificate"))
+    runner_up_asymmetric_certificate = cast(
+        dict[str, object] | None,
+        certificate.get("runner_up_asymmetric_certificate"),
+    )
     certificate["reported_asymmetric_total_radius"] = (
-        int(asymmetric_certificate["total_radius"])
-        if certificate["is_correct"] and asymmetric_certificate is not None
+        int(cast(int, asymmetric_certificate["total_radius"]))
+        if certificate["is_correct"] and not certificate["abstained"] and asymmetric_certificate is not None
         else 0
     )
     certificate["reported_asymmetric_delete_budget"] = (
-        int(asymmetric_certificate["max_delete_budget"])
-        if certificate["is_correct"] and asymmetric_certificate is not None
+        int(cast(int, asymmetric_certificate["max_delete_budget"]))
+        if certificate["is_correct"] and not certificate["abstained"] and asymmetric_certificate is not None
         else 0
     )
     certificate["reported_asymmetric_add_budget"] = (
-        int(asymmetric_certificate["max_add_budget"])
-        if certificate["is_correct"] and asymmetric_certificate is not None
+        int(cast(int, asymmetric_certificate["max_add_budget"]))
+        if certificate["is_correct"] and not certificate["abstained"] and asymmetric_certificate is not None
         else 0
     )
     certificate["reported_runner_up_asymmetric_total_radius"] = (
-        int(runner_up_asymmetric_certificate["total_radius"])
-        if certificate["is_correct"] and runner_up_asymmetric_certificate is not None
+        int(cast(int, runner_up_asymmetric_certificate["total_radius"]))
+        if certificate["is_correct"] and not certificate["abstained"] and runner_up_asymmetric_certificate is not None
         else 0
     )
 

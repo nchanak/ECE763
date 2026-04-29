@@ -1,0 +1,10 @@
+model_variant,attack_variant,target_node,p_delete,p_add,max_additions,clean_test_accuracy,attacked_test_accuracy,clean_margin,attacked_margin,clean_pred,attacked_pred,clean_is_correct,attacked_is_correct,true_label
+clean-training,clean-training,2488,0.01,5e-06,64,0.817,0.816,1.0,1.0,1,0,1,0,1
+clean-training,clean-training,2488,0.02,1e-05,96,0.817,0.816,0.996,1.0,1,0,1,0,1
+clean-training,clean-training,2488,0.05,2e-05,160,0.817,0.816,0.996,0.992,1,0,1,0,1
+matched-sparse-noisy-training,matched-sparse-noisy-training,1773,0.01,5e-06,64,0.817,0.816,1.0,0.9359999999999999,1,4,1,0,1
+matched-sparse-noisy-training,matched-sparse-noisy-training,1773,0.02,1e-05,96,0.817,0.816,1.0,0.8320000000000001,1,4,1,0,1
+matched-sparse-noisy-training,matched-sparse-noisy-training,1773,0.05,2e-05,160,0.817,0.816,1.0,0.6839999999999999,1,4,1,0,1
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,1866,0.01,5e-06,64,0.809,0.808,1.0,1.0,3,2,1,0,3
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,1866,0.02,1e-05,96,0.809,0.808,1.0,1.0,3,2,1,0,3
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,1866,0.05,2e-05,160,0.809,0.809,0.996,0.992,3,2,1,0,3

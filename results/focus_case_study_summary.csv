@@ -1,0 +1,4 @@
+model_variant,attack_variant,target_node,true_label,clean_probe_correct,attack_probe_correct,clean_probe_radius,attack_probe_radius
+clean-training,clean-training,2488,1,True,True,0,0
+matched-sparse-noisy-training,matched-sparse-noisy-training,1773,1,True,True,0,0
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,1866,3,True,False,0,0

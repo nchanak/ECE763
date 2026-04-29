@@ -1,0 +1,13 @@
+model_variant,attack_variant,target_node,p_flip,beta,clean_abstained,attacked_abstained,clean_certified_radius,attacked_certified_radius,clean_reported_certified_radius,attacked_reported_certified_radius,clean_reported_asymmetric_total_radius,attacked_reported_asymmetric_total_radius,clean_reported_asymmetric_delete_budget,attacked_reported_asymmetric_delete_budget,clean_reported_asymmetric_add_budget,attacked_reported_asymmetric_add_budget,clean_reported_runner_up_asymmetric_total_radius,attacked_reported_runner_up_asymmetric_total_radius,clean_runner_up_radius,attacked_runner_up_radius,clean_pA_lower,attacked_pA_lower,clean_pred,attacked_pred,clean_is_correct,attacked_is_correct,true_label
+clean-training,clean-training,2488,0.01,0.01,False,False,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.9752825416552515,0.7497258336238553,1,1,True,True,1
+clean-training,clean-training,2488,0.02,0.02,False,False,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.9811771485586084,0.9752825416552515,1,1,True,True,1
+clean-training,clean-training,2488,0.05,0.05,False,False,1,1,1,1,0,0,0,0,0,0,0,0,1,1,0.9811771485586084,0.9811771485586084,1,1,True,True,1
+clean-training,clean-training,2488,0.1,0.1,False,False,1,1,1,1,0,0,0,0,0,0,0,0,1,1,0.9811771485586084,0.9811771485586084,1,1,True,True,1
+matched-sparse-noisy-training,matched-sparse-noisy-training,1773,0.01,0.01,False,False,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.945437885141615,0.5964980039461814,1,1,True,True,1
+matched-sparse-noisy-training,matched-sparse-noisy-training,1773,0.02,0.02,False,False,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.9239471612843768,0.6893502941871386,1,1,True,True,1
+matched-sparse-noisy-training,matched-sparse-noisy-training,1773,0.05,0.05,False,False,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.894146735756629,0.8387535640440293,1,1,True,True,1
+matched-sparse-noisy-training,matched-sparse-noisy-training,1773,0.1,0.1,False,False,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.9239471612843768,0.8035899391949881,1,1,True,True,1
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,1866,0.01,0.01,False,False,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.8721121247892049,0.5679795730062993,3,3,True,True,3
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,1866,0.02,0.02,False,True,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.635873464126232,0.48908571986739025,3,1,True,False,3
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,1866,0.05,0.05,False,False,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.8269113548323237,0.8628819382560093,1,1,False,False,3
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,1866,0.1,0.1,False,False,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0.9752825416552515,0.9811771485586084,1,1,False,False,3

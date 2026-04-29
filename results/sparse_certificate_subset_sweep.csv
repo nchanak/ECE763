@@ -1,0 +1,4 @@
+p_delete,p_add,max_additions,evaluated_nodes,correct_fraction,positive_certified_accuracy,certified_fraction_on_correct,mean_certified_radius_on_correct
+0.01,5e-06,64,24,1.0,0.0,0.0,0.0
+0.02,1e-05,96,24,1.0,0.0,0.0,0.0
+0.05,2e-05,160,24,1.0,0.0,0.0,0.0

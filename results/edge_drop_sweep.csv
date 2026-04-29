@@ -1,6 +1,6 @@
-p_delete,clean_test_accuracy,attacked_test_accuracy,clean_margin,attacked_margin,clean_pA_lower,attacked_pA_lower,clean_pred,attacked_pred,clean_is_correct,attacked_is_correct,true_label
-0.05,0.806,0.805,1.0,0.988,0.9849131592259058,0.9724348788746924,2,0,1,0,2
-0.1,0.805,0.804,1.0,0.9279999999999999,0.9849131592259058,0.9280135681252818,2,0,1,0,2
-0.2,0.806,0.806,1.0,0.8200000000000001,0.9849131592259058,0.8605643232929396,2,0,1,0,2
-0.3,0.807,0.805,1.0,0.732,0.9849131592259058,0.8093811363360011,2,0,1,0,2
-0.4,0.802,0.801,1.0,0.6240000000000001,0.9849131592259058,0.7489636873171934,2,0,1,0,2
+model_variant,attack_variant,target_node,p_delete,clean_test_accuracy,attacked_test_accuracy,clean_margin,attacked_margin,clean_pA_lower,attacked_pA_lower,clean_pred,attacked_pred,clean_is_correct,attacked_is_correct,true_label
+clean-training,clean-training,2488,0.05,0.817,0.816,1.0,0.996,0.9849131592259058,0.9801816024907353,1,0,1,0,1
+clean-training,clean-training,2488,0.1,0.817,0.816,1.0,0.976,0.9849131592259058,0.9623852021396418,1,0,1,0,1
+clean-training,clean-training,2488,0.2,0.817,0.817,1.0,0.9159999999999999,0.9849131592259058,0.9200788594678966,1,0,1,0,1
+clean-training,clean-training,2488,0.3,0.816,0.812,1.0,0.808,0.9849131592259058,0.8534454224991455,1,0,1,0,1
+clean-training,clean-training,2488,0.4,0.813,0.808,1.0,0.7,0.9849131592259058,0.7912521535750322,1,0,1,0,1

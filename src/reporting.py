@@ -37,10 +37,13 @@ def save_csv_rows(output_path: Path, rows: Sequence[Dict[str, Any]]):
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = []
+    seen = set()
     for row in rows:
         for key in row.keys():
-            if key not in fieldnames:
-                fieldnames.append(key)
+            if key in seen:
+                continue
+            seen.add(key)
+            fieldnames.append(key)
     with output_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
