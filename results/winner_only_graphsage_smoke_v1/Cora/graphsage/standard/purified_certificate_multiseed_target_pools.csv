@@ -1,0 +1,3 @@
+seed,model_variant,attack_variant,attempted_nodes,successful_attacks,evaluated_targets,target_count_goal,target_pool_mode
+42,clean-training,clean-training,1,1,1,1,successful-attacks
+42,clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,1,1,1,1,successful-attacks

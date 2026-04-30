@@ -1,0 +1,4 @@
+variant,display_name,warm_start_from,training_epochs,learning_rate,clean_test_accuracy,best_validation_accuracy,best_test_accuracy,sparse_smoothed_test_accuracy,global_attack_budget_50_accuracy
+clean-training,Clean supervised baseline,,200,0.01,0.791,0.784,0.791,0.791,0.79
+matched-sparse-noisy-training,Matched sparse-noisy robust training variant,,200,0.01,0.806,0.802,0.806,0.806,0.799
+clean-warmstart-symmetric-finetune,Clean warm-start symmetric fine-tuning variant,clean-training,40,0.005,0.807,0.796,0.807,0.807,0.806

@@ -1,0 +1,11 @@
+seed,model_variant,attack_variant,attempted_nodes,successful_attacks,evaluated_targets,target_count_goal,target_pool_mode
+7,clean-training,clean-training,20,18,18,20,successful-attacks
+7,clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,20,18,18,20,successful-attacks
+21,clean-training,clean-training,20,16,16,20,successful-attacks
+21,clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,20,16,16,20,successful-attacks
+42,clean-training,clean-training,20,18,18,20,successful-attacks
+42,clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,20,18,18,20,successful-attacks
+84,clean-training,clean-training,20,18,18,20,successful-attacks
+84,clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,20,18,18,20,successful-attacks
+99,clean-training,clean-training,20,16,16,20,successful-attacks
+99,clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,20,16,16,20,successful-attacks

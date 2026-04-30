@@ -10,15 +10,21 @@ from torch_geometric.datasets import Planetoid
 from torch_geometric.transforms import NormalizeFeatures
 
 from src.attack import run_prbcd_attack
-from src.models import GCN
+from src.models import MODEL_ARCHITECTURE_CHOICES, build_model as build_gnn_model
 from src.nettack import (
     choose_correct_test_nodes,
     choose_jointly_correct_test_nodes,
     predict_node,
+    run_purification_aware_nettack_on_node,
     run_nettack_on_node,
     train_deeprobust_surrogate,
 )
-from src.purification import purify_edge_index_by_jaccard, purify_target_node_edges_by_jaccard
+from src.purification import (
+    purify_edge_index,
+    purify_edge_index_by_jaccard,
+    purify_target_node_edges,
+    purify_target_node_edges_by_jaccard,
+)
 from src.reporting import (
     ensure_results_dir,
     plot_attack_budget_accuracy,
@@ -46,30 +52,69 @@ SPARSE_FLIP_SWEEP = [
     {"p_delete": 0.02, "p_add": 0.000010, "max_additions": 96},
     {"p_delete": 0.05, "p_add": 0.000020, "max_additions": 160},
 ]
-CERTIFIED_ACCURACY_SWEEP = [0.01, 0.02, 0.05, 0.10]
-LOCAL_CERTIFICATE_SWEEP = [0.01, 0.02, 0.05, 0.10]
-SPARSE_CERTIFICATE_SWEEP = SPARSE_FLIP_SWEEP
-PURIFICATION_SWEEP = [0.0, 0.01, 0.02, 0.05]
-PURIFIED_CERTIFICATE_CANDIDATE_SWEEP = [
+LEGACY_SPARSE_CERTIFICATE_CANDIDATE_SWEEP = [
     {
-        "label": "sparse-asym-0.01",
+        "label": "legacy-sparse-asym-0.01",
         "mode": "sparse-edge-flip",
         "p_delete": 0.01,
         "p_add": 0.000005,
         "max_additions": 64,
     },
     {
-        "label": "sparse-asym-0.02",
+        "label": "legacy-sparse-asym-0.02",
         "mode": "sparse-edge-flip",
         "p_delete": 0.02,
         "p_add": 0.000010,
         "max_additions": 96,
     },
     {
+        "label": "legacy-sparse-asym-0.05",
+        "mode": "sparse-edge-flip",
+        "p_delete": 0.05,
+        "p_add": 0.000020,
+        "max_additions": 160,
+    },
+]
+BALANCED_SPARSE_PURIFIED_CERTIFICATE_CONFIG = {
+    "label": "balanced-sparse-0.2",
+    "mode": "sparse-edge-flip",
+    "p_delete": 0.2,
+    "p_add": 0.2,
+    "max_additions": 160,
+}
+CERTIFIED_ACCURACY_SWEEP = [0.01, 0.02, 0.05, 0.10]
+LOCAL_CERTIFICATE_SWEEP = [0.01, 0.02, 0.05, 0.10]
+# Keep the old low-noise sparse asymmetric configs for diagnostics only.
+# The active certificate grid is intentionally stronger than the smoothing /
+# training grid so radius search is not dominated by mathematically hopeless
+# p_delete values on purified targets.
+SPARSE_CERTIFICATE_SWEEP = [
+    {
         "label": "sparse-asym-0.05",
         "mode": "sparse-edge-flip",
         "p_delete": 0.05,
         "p_add": 0.000020,
+        "max_additions": 160,
+    },
+    {
+        "label": "sparse-asym-del-0.08",
+        "mode": "sparse-edge-flip",
+        "p_delete": 0.08,
+        "p_add": 0.000032,
+        "max_additions": 160,
+    },
+    {
+        "label": "sparse-asym-del-0.10",
+        "mode": "sparse-edge-flip",
+        "p_delete": 0.10,
+        "p_add": 0.000040,
+        "max_additions": 160,
+    },
+    {
+        "label": "sparse-asym-mixed-0.10",
+        "mode": "sparse-edge-flip",
+        "p_delete": 0.10,
+        "p_add": 0.01,
         "max_additions": 160,
     },
     {
@@ -79,9 +124,54 @@ PURIFIED_CERTIFICATE_CANDIDATE_SWEEP = [
         "p_add": 0.2,
         "max_additions": 160,
     },
+]
+PURIFICATION_SWEEP = [0.0, 0.01, 0.02, 0.05]
+SYMMETRIC_CERTIFICATE_CANDIDATE_SWEEP = [
     {"label": "symmetric-0.2", "mode": "symmetric-edge-flip", "p_delete": 0.2, "p_add": 0.2, "max_additions": 160},
     {"label": "symmetric-0.3", "mode": "symmetric-edge-flip", "p_delete": 0.3, "p_add": 0.3, "max_additions": 160},
 ]
+ADVANCED_PURIFIED_CERTIFICATE_CANDIDATE_SWEEP = [
+    {
+        "label": "symmetric-0.3-top2",
+        "mode": "symmetric-edge-flip",
+        "p_delete": 0.3,
+        "p_add": 0.3,
+        "max_additions": 160,
+        "certificate_report_strategy": "top2",
+    },
+    {
+        "label": "symmetric-0.3-degree-adaptive",
+        "mode": "symmetric-edge-flip",
+        "p_delete": 0.3,
+        "p_add": 0.3,
+        "max_additions": 160,
+        "adaptive_profile": "degree",
+    },
+    {
+        "label": "balanced-sparse-0.2-degree-adaptive",
+        "mode": "sparse-edge-flip",
+        "p_delete": 0.2,
+        "p_add": 0.2,
+        "max_additions": 160,
+        "adaptive_profile": "degree",
+    },
+    {
+        "label": "symmetric-0.3-cosine-top2",
+        "mode": "symmetric-edge-flip",
+        "p_delete": 0.3,
+        "p_add": 0.3,
+        "max_additions": 160,
+        "purification_operator": "cosine",
+        "certificate_report_strategy": "top2",
+    },
+]
+PURIFIED_CERTIFICATE_MAINLINE_CANDIDATE_SWEEP = [
+    BALANCED_SPARSE_PURIFIED_CERTIFICATE_CONFIG,
+    *SYMMETRIC_CERTIFICATE_CANDIDATE_SWEEP,
+    *ADVANCED_PURIFIED_CERTIFICATE_CANDIDATE_SWEEP,
+]
+PURIFIED_CERTIFICATE_ABLATION_SWEEP = LEGACY_SPARSE_CERTIFICATE_CANDIDATE_SWEEP
+PURIFIED_CERTIFICATE_CANDIDATE_SWEEP = PURIFIED_CERTIFICATE_MAINLINE_CANDIDATE_SWEEP
 PURIFIED_CERTIFICATE_TARGET_COUNT = 12
 PURIFICATION_ATTACK_BUDGET = 50
 CERTIFIED_ACCURACY_SAMPLES = 100
@@ -100,12 +190,21 @@ DEFAULT_SEEDS = [42]
 DEFAULT_SMOOTHING_MODES = ["edge-drop", "sparse-edge-flip", "symmetric-cert", "sparse-asymmetric-cert"]
 ROBUST_TRAINING_CONFIG = SPARSE_FLIP_SWEEP[1]
 MATCHED_SPARSE_TRAINING_LABEL = "matched-sparse-noisy-training"
+BALANCED_SPARSE_TRAINING_LABEL = "balanced-sparse-noisy-training"
 CERTIFICATE_ORIENTED_TRAINING_LABEL = "clean-warmstart-symmetric-finetune"
+PURIFICATION_AWARE_TRAINING_LABEL = "purification-aware-symmetric-finetune"
+DEFAULT_MODEL_ARCHITECTURE = "gcn"
 MATCHED_SPARSE_NOISE_CONFIG = {
     "mode": "sparse-edge-flip",
     "p_delete": ROBUST_TRAINING_CONFIG["p_delete"],
     "p_add": ROBUST_TRAINING_CONFIG["p_add"],
     "max_additions": ROBUST_TRAINING_CONFIG["max_additions"],
+}
+BALANCED_SPARSE_NOISE_CONFIG = {
+    "mode": "sparse-edge-flip",
+    "p_delete": BALANCED_SPARSE_PURIFIED_CERTIFICATE_CONFIG["p_delete"],
+    "p_add": BALANCED_SPARSE_PURIFIED_CERTIFICATE_CONFIG["p_add"],
+    "max_additions": BALANCED_SPARSE_PURIFIED_CERTIFICATE_CONFIG["max_additions"],
 }
 CERTIFICATE_ORIENTED_FINE_TUNE_CONFIG = {
     "mode": "symmetric-edge-flip",
@@ -113,9 +212,38 @@ CERTIFICATE_ORIENTED_FINE_TUNE_CONFIG = {
     "p_add": 0.3,
     "max_additions": 160,
 }
+PURIFICATION_AWARE_FINE_TUNE_CONFIG = {
+    **CERTIFICATE_ORIENTED_FINE_TUNE_CONFIG,
+    "purification_operator": "jaccard",
+    "purification_threshold": 0.02,
+}
 CERTIFICATE_ORIENTED_FINE_TUNE_EPOCHS = 40
 CERTIFICATE_ORIENTED_FINE_TUNE_LR = 0.005
-MULTI_SEED_PURIFIED_SUMMARY_SEEDS = [7, 21, 42, 84, 99]
+MULTI_SEED_PURIFIED_SUMMARY_SEEDS = [7, 42, 99]
+WINNER_ONLY_MULTI_SEED_SUMMARY_SEEDS = [7, 21, 42, 84, 99]
+WINNER_ONLY_PURIFIED_TARGET_COUNT = 20
+WINNER_ONLY_PURIFIED_CERTIFICATE_CANDIDATE_SWEEP = [
+    {"label": "symmetric-0.3", "mode": "symmetric-edge-flip", "p_delete": 0.3, "p_add": 0.3, "max_additions": 160},
+    {
+        "label": "symmetric-0.3-top2",
+        "mode": "symmetric-edge-flip",
+        "p_delete": 0.3,
+        "p_add": 0.3,
+        "max_additions": 160,
+        "certificate_report_strategy": "top2",
+    },
+    {
+        "label": "symmetric-0.3-cosine-top2",
+        "mode": "symmetric-edge-flip",
+        "p_delete": 0.3,
+        "p_add": 0.3,
+        "max_additions": 160,
+        "purification_operator": "cosine",
+        "certificate_report_strategy": "top2",
+    },
+]
+ADAPTIVE_PURIFIED_ATTACK_THRESHOLDS = PURIFICATION_SWEEP[1:]
+WINNER_ONLY_TRAINING_VARIANT_LABELS = [CERTIFICATE_ORIENTED_TRAINING_LABEL]
 
 
 def _parse_int_list(value: str):
@@ -324,6 +452,18 @@ def _build_additional_training_variant_specs():
             },
         },
         {
+            "label": BALANCED_SPARSE_TRAINING_LABEL,
+            "display_name": "Balanced sparse-noisy robust training variant",
+            "epochs": 200,
+            "learning_rate": 0.01,
+            "weight_decay": 5e-4,
+            "warm_start_from": None,
+            "train_config": {
+                "variant": BALANCED_SPARSE_TRAINING_LABEL,
+                **BALANCED_SPARSE_NOISE_CONFIG,
+            },
+        },
+        {
             "label": CERTIFICATE_ORIENTED_TRAINING_LABEL,
             "display_name": "Clean warm-start symmetric fine-tuning variant",
             "epochs": CERTIFICATE_ORIENTED_FINE_TUNE_EPOCHS,
@@ -336,7 +476,129 @@ def _build_additional_training_variant_specs():
                 **CERTIFICATE_ORIENTED_FINE_TUNE_CONFIG,
             },
         },
+        {
+            "label": PURIFICATION_AWARE_TRAINING_LABEL,
+            "display_name": "Purification-aware symmetric fine-tuning variant",
+            "epochs": CERTIFICATE_ORIENTED_FINE_TUNE_EPOCHS,
+            "learning_rate": CERTIFICATE_ORIENTED_FINE_TUNE_LR,
+            "weight_decay": 5e-4,
+            "warm_start_from": "clean-training",
+            "train_config": {
+                "variant": PURIFICATION_AWARE_TRAINING_LABEL,
+                "track_initial_state": True,
+                **PURIFICATION_AWARE_FINE_TUNE_CONFIG,
+            },
+        },
     ]
+
+
+def _filter_training_variant_specs(variant_specs, allowed_labels=None):
+    if allowed_labels is None:
+        return list(variant_specs)
+    allowed = set(allowed_labels)
+    return [variant_spec for variant_spec in variant_specs if variant_spec["label"] in allowed]
+
+
+def _target_degree_from_edge_index(edge_index, target_node):
+    if edge_index.numel() == 0:
+        return 0
+    return int((edge_index[0] == int(target_node)).sum().item())
+
+
+def _prediction_confidence_and_margin(node_logits):
+    probs = torch.softmax(node_logits.float(), dim=0)
+    top_k = min(2, probs.numel())
+    top_probs = torch.topk(probs, k=top_k)
+    confidence = float(top_probs.values[0].item()) if top_k > 0 else 0.0
+    runner_up = float(top_probs.values[1].item()) if top_k > 1 else 0.0
+    return confidence, confidence - runner_up
+
+
+def _resolve_degree_adaptive_smoothing_config(config, target_degree, target_edge_retention):
+    resolved = dict(config)
+    adaptive_profile = str(config.get("adaptive_profile", "") or "")
+    if adaptive_profile != "degree":
+        resolved["resolved_adaptive_bucket"] = "static"
+        return resolved
+
+    if target_degree <= 3:
+        noise_scale = 0.70
+        addition_scale = 0.60
+        bucket = "low-degree"
+    elif target_degree >= 10:
+        noise_scale = 1.10 if target_edge_retention >= 0.75 else 1.00
+        addition_scale = 1.25
+        bucket = "high-degree"
+    elif target_edge_retention < 0.70:
+        noise_scale = 0.85
+        addition_scale = 0.75
+        bucket = "mid-degree-trimmed"
+    else:
+        noise_scale = 1.00
+        addition_scale = 1.00
+        bucket = "mid-degree"
+
+    resolved["p_delete"] = float(max(0.01, min(0.45, config["p_delete"] * noise_scale)))
+    if resolved["mode"] == "symmetric-edge-flip":
+        resolved["p_add"] = float(resolved["p_delete"])
+    else:
+        resolved["p_add"] = float(max(0.0, min(0.45, config["p_add"] * addition_scale)))
+    resolved["max_additions"] = int(max(32, round(config["max_additions"] * addition_scale)))
+    resolved["resolved_adaptive_bucket"] = bucket
+    return resolved
+
+
+def _select_heuristic_candidate_row(per_target_candidate_rows):
+    if not per_target_candidate_rows:
+        raise ValueError("per_target_candidate_rows must be non-empty")
+
+    anchor_row = max(
+        per_target_candidate_rows,
+        key=lambda row: (
+            float(row["purified_confidence"]),
+            float(row["purified_margin"]),
+            float(row["target_edge_retention"]),
+            row["config_label"],
+        ),
+    )
+    confidence = float(anchor_row["purified_confidence"])
+    margin = float(anchor_row["purified_margin"])
+    target_degree = int(anchor_row["target_degree"])
+    target_edge_retention = float(anchor_row["target_edge_retention"])
+
+    rows_by_label = {row["config_label"]: row for row in per_target_candidate_rows}
+    if confidence < 0.55 or margin < 0.18 or target_edge_retention < 0.70:
+        preferred_labels = ["symmetric-0.3-top2", "symmetric-0.3-cosine-top2", "symmetric-0.3"]
+        reason = "low-margin-top2"
+    elif target_degree <= 3 or target_degree >= 10:
+        preferred_labels = [
+            "symmetric-0.3-degree-adaptive",
+            "balanced-sparse-0.2-degree-adaptive",
+            "symmetric-0.3",
+        ]
+        reason = "degree-adaptive"
+    elif margin < 0.30:
+        preferred_labels = ["symmetric-0.3-cosine-top2", "symmetric-0.3-top2", "symmetric-0.3"]
+        reason = "alternative-purification"
+    elif confidence > 0.80 and target_edge_retention > 0.85:
+        preferred_labels = ["balanced-sparse-0.2", "symmetric-0.2", "symmetric-0.3"]
+        reason = "high-confidence-balanced-sparse"
+    else:
+        preferred_labels = ["symmetric-0.3", "symmetric-0.2", "balanced-sparse-0.2"]
+        reason = "default-symmetric"
+
+    for label in preferred_labels:
+        if label in rows_by_label:
+            return dict(rows_by_label[label]), reason
+
+    fallback_row = max(
+        per_target_candidate_rows,
+        key=lambda row: (
+            float(row["purified_confidence"]) + 0.5 * float(row["purified_margin"]) + 0.1 * float(row["target_edge_retention"]),
+            row["config_label"],
+        ),
+    )
+    return dict(fallback_row), f"{reason}-fallback"
 
 
 def _summarize_certificate_rows(rows, config_keys, group_keys):
@@ -430,8 +692,9 @@ def _train_model(model, data, optimizer, epochs: int = 200):
     return history, best_val, best_test
 
 
-def _build_model(dataset, device):
-    return GCN(
+def _build_model(dataset, device, model_architecture: str = DEFAULT_MODEL_ARCHITECTURE):
+    return build_gnn_model(
+        architecture=model_architecture,
         in_channels=dataset.num_node_features,
         hidden_channels=32,
         out_channels=dataset.num_classes,
@@ -474,6 +737,8 @@ def _train_model_with_config(model, data, optimizer, epochs: int = 200, train_co
                 p_delete=epoch_noise_config.get("p_delete", 0.02),
                 p_add=epoch_noise_config.get("p_add", 0.0),
                 max_additions=epoch_noise_config.get("max_additions", 20000),
+                purification_operator=epoch_noise_config.get("purification_operator"),
+                purification_threshold=epoch_noise_config.get("purification_threshold", 0.0),
             )
         else:
             loss = train_one_epoch(model, data, optimizer)
@@ -494,6 +759,12 @@ def _train_model_with_config(model, data, optimizer, epochs: int = 200, train_co
                 "noise_p_add": float(epoch_noise_config.get("p_add", 0.0)) if epoch_noise_config is not None else 0.0,
                 "noise_max_additions": (
                     int(epoch_noise_config.get("max_additions", 0)) if epoch_noise_config is not None else 0
+                ),
+                "noise_purification_operator": (
+                    str(epoch_noise_config.get("purification_operator", "")) if epoch_noise_config is not None else ""
+                ),
+                "noise_purification_threshold": (
+                    float(epoch_noise_config.get("purification_threshold", 0.0)) if epoch_noise_config is not None else 0.0
                 ),
             }
         )
@@ -876,8 +1147,41 @@ def _collect_nettack_result_pool(
     device="cpu",
     initial_results=None,
     initial_count=5,
+    attack_mode="standard",
+    adaptive_purification_thresholds=None,
+    adaptive_purification_operator="jaccard",
+    adaptive_max_perturbations=5,
 ):
-    attempted_results = list(initial_results or [])
+    attack_mode_name = str(attack_mode or "standard").strip().lower()
+
+    def _run_targeted_attack(target_node):
+        if attack_mode_name == "adaptive-purified":
+            return run_purification_aware_nettack_on_node(
+                target_model=target_model,
+                data=data,
+                surrogate=surrogate,
+                adj=adj,
+                features=features,
+                labels=labels,
+                target_node=target_node,
+                purification_thresholds=(adaptive_purification_thresholds or PURIFICATION_SWEEP[1:]),
+                purification_operator=adaptive_purification_operator,
+                max_perturbations=adaptive_max_perturbations,
+                device=device,
+            )
+        return run_nettack_on_node(
+            target_model=target_model,
+            data=data,
+            surrogate=surrogate,
+            adj=adj,
+            features=features,
+            labels=labels,
+            target_node=target_node,
+            n_perturbations=3,
+            device=device,
+        )
+
+    attempted_results = list(initial_results or []) if attack_mode_name == "standard" else []
     successful_results = [result for result in attempted_results if result["success"]]
     attempted_nodes = {int(result["target_node"]) for result in attempted_results}
 
@@ -889,17 +1193,7 @@ def _collect_nettack_result_pool(
             strategy="stratified",
         )
         for target_node in initial_nodes:
-            result = run_nettack_on_node(
-                target_model=target_model,
-                data=data,
-                surrogate=surrogate,
-                adj=adj,
-                features=features,
-                labels=labels,
-                target_node=target_node,
-                n_perturbations=3,
-                device=device,
-            )
+            result = _run_targeted_attack(target_node)
             attempted_results.append(result)
             attempted_nodes.add(int(target_node))
             if result["success"]:
@@ -915,17 +1209,7 @@ def _collect_nettack_result_pool(
         for target_node in expanded_nodes:
             if target_node in attempted_nodes:
                 continue
-            result = run_nettack_on_node(
-                target_model=target_model,
-                data=data,
-                surrogate=surrogate,
-                adj=adj,
-                features=features,
-                labels=labels,
-                target_node=target_node,
-                n_perturbations=3,
-                device=device,
-            )
+            result = _run_targeted_attack(target_node)
             attempted_results.append(result)
             attempted_nodes.add(int(target_node))
             if result["success"]:
@@ -951,89 +1235,382 @@ def _evaluate_purified_certificate_sweep(
     attack_variant,
     emit_logs=True,
     log_prefix="",
+    candidate_sweep=None,
+    ablation_sweep=None,
 ):
     candidate_rows = []
     candidate_summary = []
+    ablation_rows = []
+    ablation_summary = []
+    selector_rows = []
+    selector_summary = []
     oracle_rows = []
     oracle_summary = []
+    mainline_candidate_sweep = list(candidate_sweep) if candidate_sweep is not None else PURIFIED_CERTIFICATE_CANDIDATE_SWEEP
+    ablation_candidate_sweep = list(ablation_sweep) if ablation_sweep is not None else PURIFIED_CERTIFICATE_ABLATION_SWEEP
+
+    def _build_config_row(
+        config,
+        *,
+        config_branch,
+        result,
+        threshold,
+    ):
+        purification_operator = str(config.get("purification_operator", "jaccard"))
+        purification_threshold = float(config.get("purification_threshold", threshold))
+        certificate_report_strategy = str(config.get("certificate_report_strategy", "rest"))
+        adaptive_profile = str(config.get("adaptive_profile", "") or "")
+
+        purified_edge_index, purification_stats = purify_target_node_edges(
+            x=data.x,
+            edge_index=result["attacked_edge_index"],
+            target_node=result["target_node"],
+            threshold=purification_threshold,
+            operator=purification_operator,
+        )
+        purified_pred, purified_logits = predict_node(
+            model=model,
+            data=data,
+            edge_index=purified_edge_index,
+            node_idx=result["target_node"],
+        )
+        purified_confidence, purified_margin = _prediction_confidence_and_margin(purified_logits)
+        target_degree = _target_degree_from_edge_index(purified_edge_index, result["target_node"])
+        resolved_config = _resolve_degree_adaptive_smoothing_config(
+            config=config,
+            target_degree=target_degree,
+            target_edge_retention=float(purification_stats["target_edge_retention"]),
+        )
+
+        certificate_kwargs = {
+            "certificate_alpha": SMOOTHING_CERTIFICATE_ALPHA,
+            "certificate_max_radius": CERTIFICATE_MAX_RADIUS,
+            "certificate_report_strategy": certificate_report_strategy,
+        }
+        if resolved_config["mode"] == "symmetric-edge-flip":
+            certificate_kwargs["certificate_beta"] = resolved_config["p_delete"]
+        else:
+            certificate_kwargs["certificate_p_delete"] = resolved_config["p_delete"]
+            certificate_kwargs["certificate_p_add"] = resolved_config["p_add"]
+            certificate_kwargs["certificate_max_delete"] = ASYMMETRIC_CERTIFICATE_MAX_DELETE
+            certificate_kwargs["certificate_max_add"] = ASYMMETRIC_CERTIFICATE_MAX_ADD
+
+        certificate, _, smoothed_pred = evaluate_smoothed_node_with_edge_index(
+            model=model,
+            data=data,
+            edge_index=purified_edge_index,
+            node_idx=result["target_node"],
+            num_samples=LOCAL_CERTIFICATE_SAMPLES,
+            selection_num_samples=SMOOTHING_SELECTION_SAMPLES,
+            certification_num_samples=LOCAL_CERTIFICATE_SAMPLES,
+            mode=resolved_config["mode"],
+            p_delete=resolved_config["p_delete"],
+            p_add=resolved_config["p_add"],
+            max_additions=resolved_config["max_additions"],
+            **certificate_kwargs,
+        )
+
+        use_top2_report = certificate_report_strategy in {"top2", "runner-up"}
+        active_abstained = bool(certificate["top2_abstained"] if use_top2_report else certificate["abstained"])
+        active_p_upper = float(certificate["top2_upper"] if use_top2_report else certificate["p_rest_upper"])
+        active_lower_margin = float(
+            certificate["top2_lower_margin"] if use_top2_report else certificate["lower_margin"]
+        )
+
+        return {
+            "summary_type": "fixed-config",
+            "config_branch": config_branch,
+            "model_variant": variant_name,
+            "attack_variant": attack_variant,
+            "threshold": float(threshold),
+            "config_label": config["label"],
+            "mode": resolved_config["mode"],
+            "purification_operator": purification_operator,
+            "purification_threshold": purification_threshold,
+            "certificate_report_strategy": "top2" if use_top2_report else "rest",
+            "adaptive_profile": adaptive_profile,
+            "resolved_adaptive_bucket": str(resolved_config.get("resolved_adaptive_bucket", "static")),
+            "p_delete": float(config["p_delete"]),
+            "p_add": float(config["p_add"]),
+            "max_additions": int(config["max_additions"]),
+            "resolved_p_delete": float(resolved_config["p_delete"]),
+            "resolved_p_add": float(resolved_config["p_add"]),
+            "resolved_max_additions": int(resolved_config["max_additions"]),
+            "target_node": int(result["target_node"]),
+            "true_label": int(result["true_label"]),
+            "target_degree": int(target_degree),
+            "purified_pred": int(purified_pred),
+            "purified_is_correct": int(purified_pred == result["true_label"]),
+            "purified_confidence": float(purified_confidence),
+            "purified_margin": float(purified_margin),
+            "smoothed_pred": int(smoothed_pred),
+            "is_correct": int(certificate["is_correct"]),
+            "abstained": int(active_abstained),
+            "rest_abstained": int(certificate["abstained"]),
+            "top2_abstained": int(certificate["top2_abstained"]),
+            "certificate_failure_reason": str(certificate["certificate_failure_reason"]),
+            "certificate_blocked_by_abstention": int(certificate["certificate_blocked_by_abstention"]),
+            "certificate_zero_radius_without_abstention": int(
+                certificate["certificate_zero_radius_without_abstention"]
+            ),
+            "reported_certified_radius": int(certificate["reported_certified_radius"]),
+            "reported_rest_certified_radius": int(certificate["reported_rest_certified_radius"]),
+            "reported_top2_certified_radius": int(certificate["reported_top2_certified_radius"]),
+            "raw_certified_radius": int(
+                certificate["raw_runner_up_certified_radius"] if use_top2_report else certificate["raw_certified_radius"]
+            ),
+            "reported_asymmetric_total_radius": int(
+                certificate.get("reported_top2_asymmetric_total_radius", 0)
+                if use_top2_report
+                else certificate["reported_asymmetric_total_radius"]
+            ),
+            "reported_asymmetric_delete_budget": int(certificate["reported_asymmetric_delete_budget"]),
+            "reported_asymmetric_add_budget": int(certificate["reported_asymmetric_add_budget"]),
+            "reported_runner_up_asymmetric_total_radius": int(
+                certificate["reported_runner_up_asymmetric_total_radius"]
+            ),
+            "pA_lower": float(certificate["pA_lower"]),
+            "p_rest_upper": float(certificate["p_rest_upper"]),
+            "top2_upper": float(certificate["top2_upper"]),
+            "active_p_upper": active_p_upper,
+            "lower_margin": active_lower_margin,
+            "rest_lower_margin": float(certificate["lower_margin"]),
+            "top2_lower_margin": float(certificate["top2_lower_margin"]),
+            "raw_asymmetric_total_radius": int(certificate["raw_asymmetric_total_radius"]),
+            "raw_asymmetric_delete_budget": int(certificate["raw_asymmetric_delete_budget"]),
+            "raw_asymmetric_add_budget": int(certificate["raw_asymmetric_add_budget"]),
+            "raw_asymmetric_budget_count": int(certificate["raw_asymmetric_budget_count"]),
+            "target_edge_retention": float(purification_stats["target_edge_retention"]),
+            "purification_mean_score": float(
+                purification_stats.get("mean_target_score", purification_stats.get("mean_target_jaccard", 0.0))
+            ),
+        }
+
+    def _summarize_config_rows(per_config_rows, config, threshold, config_branch):
+        return {
+            "summary_type": "fixed-config",
+            "config_branch": config_branch,
+            "model_variant": variant_name,
+            "attack_variant": attack_variant,
+            "threshold": float(threshold),
+            "config_label": config["label"],
+            "mode": config["mode"],
+            "purification_operator": str(config.get("purification_operator", "jaccard")),
+            "purification_threshold": float(config.get("purification_threshold", threshold)),
+            "certificate_report_strategy": str(config.get("certificate_report_strategy", "rest")),
+            "adaptive_profile": str(config.get("adaptive_profile", "") or ""),
+            "p_delete": float(config["p_delete"]),
+            "p_add": float(config["p_add"]),
+            "max_additions": int(config["max_additions"]),
+            "evaluated_nodes": int(len(per_config_rows)),
+            "purified_plain_correct_fraction": (
+                sum(row["purified_is_correct"] for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "correct_fraction": (
+                sum(row["is_correct"] for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "abstained_fraction": (
+                sum(row["abstained"] for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "correct_abstained_fraction": (
+                sum(row["certificate_blocked_by_abstention"] for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "correct_zero_radius_fraction": (
+                sum(row["certificate_zero_radius_without_abstention"] for row in per_config_rows)
+                / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "positive_certified_fraction": (
+                sum(row["reported_certified_radius"] > 0 for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "max_reported_radius": max(
+                (row["reported_certified_radius"] for row in per_config_rows),
+                default=0,
+            ),
+            "mean_pA_lower": (
+                sum(row["pA_lower"] for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "mean_lower_margin": (
+                sum(row["lower_margin"] for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "mean_purified_confidence": (
+                sum(row["purified_confidence"] for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "mean_purified_margin": (
+                sum(row["purified_margin"] for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "mean_target_degree": (
+                sum(row["target_degree"] for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "mean_resolved_p_delete": (
+                sum(row["resolved_p_delete"] for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "mean_resolved_p_add": (
+                sum(row["resolved_p_add"] for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "mean_resolved_max_additions": (
+                sum(row["resolved_max_additions"] for row in per_config_rows) / len(per_config_rows)
+                if per_config_rows
+                else 0.0
+            ),
+            "failure_reason_counts": _format_counter(
+                Counter(row["certificate_failure_reason"] for row in per_config_rows)
+            ),
+        }
+
+    def _summarize_selected_rows(per_threshold_rows, threshold, summary_type):
+        selected_config_counts = Counter(row["config_label"] for row in per_threshold_rows)
+        selected_failure_reasons = Counter(row["certificate_failure_reason"] for row in per_threshold_rows)
+        selection_status_counts = Counter(str(row.get("selection_status", "")) for row in per_threshold_rows)
+        return {
+            "summary_type": summary_type,
+            "config_branch": "mainline",
+            "model_variant": variant_name,
+            "attack_variant": attack_variant,
+            "threshold": float(threshold),
+            "evaluated_nodes": int(len(per_threshold_rows)),
+            "purified_plain_correct_fraction": (
+                sum(row["purified_is_correct"] for row in per_threshold_rows) / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "correct_fraction": (
+                sum(row["is_correct"] for row in per_threshold_rows) / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "abstained_fraction": (
+                sum(row["abstained"] for row in per_threshold_rows) / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "correct_abstained_fraction": (
+                sum(row["certificate_blocked_by_abstention"] for row in per_threshold_rows) / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "correct_zero_radius_fraction": (
+                sum(row["certificate_zero_radius_without_abstention"] for row in per_threshold_rows)
+                / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "positive_certified_fraction": (
+                sum(row["reported_certified_radius"] > 0 for row in per_threshold_rows) / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "mean_reported_radius": (
+                sum(row["reported_certified_radius"] for row in per_threshold_rows) / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "max_reported_radius": max(
+                (row["reported_certified_radius"] for row in per_threshold_rows),
+                default=0,
+            ),
+            "mean_pA_lower": (
+                sum(row["pA_lower"] for row in per_threshold_rows) / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "mean_lower_margin": (
+                sum(row["lower_margin"] for row in per_threshold_rows) / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "mean_target_edge_retention": (
+                sum(row["target_edge_retention"] for row in per_threshold_rows) / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "mean_purified_confidence": (
+                sum(row["purified_confidence"] for row in per_threshold_rows) / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "mean_purified_margin": (
+                sum(row["purified_margin"] for row in per_threshold_rows) / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "mean_target_degree": (
+                sum(row["target_degree"] for row in per_threshold_rows) / len(per_threshold_rows)
+                if per_threshold_rows
+                else 0.0
+            ),
+            "nodes_with_correct_config": int(sum(row.get("had_correct_candidate", 0) for row in per_threshold_rows)),
+            "nodes_without_correct_config": int(
+                sum(1 - int(row.get("had_correct_candidate", 0)) for row in per_threshold_rows)
+            ),
+            "correct_selected_config_counts": _format_counter(selected_config_counts),
+            "selection_status_counts": _format_counter(selection_status_counts),
+            "failure_reason_counts": _format_counter(selected_failure_reasons),
+        }
 
     for threshold in PURIFICATION_SWEEP[1:]:
         per_threshold_candidate_rows = []
+        per_threshold_ablation_rows = []
+        per_threshold_selector_rows = []
         per_threshold_best_rows = []
         for result in purified_certificate_results:
-            purified_edge_index, purification_stats = purify_target_node_edges_by_jaccard(
-                x=data.x,
-                edge_index=result["attacked_edge_index"],
-                target_node=result["target_node"],
-                threshold=threshold,
-            )
-            purified_pred, _ = predict_node(
-                model=model,
-                data=data,
-                edge_index=purified_edge_index,
-                node_idx=result["target_node"],
-            )
-
             per_target_candidate_rows = []
-            for config in PURIFIED_CERTIFICATE_CANDIDATE_SWEEP:
-                certificate_kwargs = {
-                    "certificate_alpha": SMOOTHING_CERTIFICATE_ALPHA,
-                    "certificate_max_radius": CERTIFICATE_MAX_RADIUS,
-                }
-                if config["mode"] == "symmetric-edge-flip":
-                    certificate_kwargs["certificate_beta"] = config["p_delete"]
-                else:
-                    certificate_kwargs["certificate_p_delete"] = config["p_delete"]
-                    certificate_kwargs["certificate_p_add"] = config["p_add"]
-                    certificate_kwargs["certificate_max_delete"] = ASYMMETRIC_CERTIFICATE_MAX_DELETE
-                    certificate_kwargs["certificate_max_add"] = ASYMMETRIC_CERTIFICATE_MAX_ADD
-
-                certificate, _, smoothed_pred = evaluate_smoothed_node_with_edge_index(
-                    model=model,
-                    data=data,
-                    edge_index=purified_edge_index,
-                    node_idx=result["target_node"],
-                    num_samples=LOCAL_CERTIFICATE_SAMPLES,
-                    selection_num_samples=SMOOTHING_SELECTION_SAMPLES,
-                    certification_num_samples=LOCAL_CERTIFICATE_SAMPLES,
-                    mode=config["mode"],
-                    p_delete=config["p_delete"],
-                    p_add=config["p_add"],
-                    max_additions=config["max_additions"],
-                    **certificate_kwargs,
+            for config in mainline_candidate_sweep:
+                row = _build_config_row(
+                    config,
+                    config_branch="mainline",
+                    result=result,
+                    threshold=threshold,
                 )
-                row = {
-                    "summary_type": "fixed-config",
-                    "model_variant": variant_name,
-                    "attack_variant": attack_variant,
-                    "threshold": float(threshold),
-                    "config_label": config["label"],
-                    "mode": config["mode"],
-                    "p_delete": float(config["p_delete"]),
-                    "p_add": float(config["p_add"]),
-                    "max_additions": int(config["max_additions"]),
-                    "target_node": int(result["target_node"]),
-                    "true_label": int(result["true_label"]),
-                    "purified_pred": int(purified_pred),
-                    "purified_is_correct": int(purified_pred == result["true_label"]),
-                    "smoothed_pred": int(smoothed_pred),
-                    "is_correct": int(certificate["is_correct"]),
-                    "reported_certified_radius": int(certificate["reported_certified_radius"]),
-                    "reported_asymmetric_total_radius": int(certificate["reported_asymmetric_total_radius"]),
-                    "reported_asymmetric_delete_budget": int(certificate["reported_asymmetric_delete_budget"]),
-                    "reported_asymmetric_add_budget": int(certificate["reported_asymmetric_add_budget"]),
-                    "reported_runner_up_asymmetric_total_radius": int(
-                        certificate["reported_runner_up_asymmetric_total_radius"]
-                    ),
-                    "pA_lower": float(certificate["pA_lower"]),
-                    "target_edge_retention": float(purification_stats["target_edge_retention"]),
-                }
                 per_target_candidate_rows.append(row)
                 per_threshold_candidate_rows.append(row)
                 candidate_rows.append(row)
 
+            for config in ablation_candidate_sweep:
+                row = _build_config_row(
+                    config,
+                    config_branch="ablation",
+                    result=result,
+                    threshold=threshold,
+                )
+                per_threshold_ablation_rows.append(row)
+                ablation_rows.append(row)
+
+            heuristic_row, selector_reason = _select_heuristic_candidate_row(per_target_candidate_rows)
+            heuristic_row["summary_type"] = "selector-heuristic"
+            heuristic_row["config_branch"] = "mainline"
+            heuristic_row["selection_status"] = selector_reason
+            heuristic_row["had_correct_candidate"] = int(any(row["is_correct"] for row in per_target_candidate_rows))
+            selector_rows.append(heuristic_row)
+            per_threshold_selector_rows.append(heuristic_row)
+
             selected_row = dict(per_target_candidate_rows[0])
-            selection_status = "fallback-low-noise"
+            selection_status = "fallback-mainline"
             best_correct_row = None
             for row in per_target_candidate_rows:
                 if not row["is_correct"]:
@@ -1055,117 +1632,60 @@ def _evaluate_purified_certificate_sweep(
                 selection_status = "best-correct-radius"
 
             selected_row["summary_type"] = "oracle-best-correct"
+            selected_row["config_branch"] = "mainline"
             selected_row["selection_status"] = selection_status
             selected_row["had_correct_candidate"] = int(best_correct_row is not None)
             oracle_rows.append(selected_row)
             per_threshold_best_rows.append(selected_row)
 
-        for config in PURIFIED_CERTIFICATE_CANDIDATE_SWEEP:
+        for config in mainline_candidate_sweep:
             per_config_rows = [row for row in per_threshold_candidate_rows if row["config_label"] == config["label"]]
-            candidate_summary.append(
-                {
-                    "summary_type": "fixed-config",
-                    "model_variant": variant_name,
-                    "attack_variant": attack_variant,
-                    "threshold": float(threshold),
-                    "config_label": config["label"],
-                    "mode": config["mode"],
-                    "p_delete": float(config["p_delete"]),
-                    "p_add": float(config["p_add"]),
-                    "max_additions": int(config["max_additions"]),
-                    "evaluated_nodes": int(len(per_config_rows)),
-                    "purified_plain_correct_fraction": (
-                        sum(row["purified_is_correct"] for row in per_config_rows) / len(per_config_rows)
-                        if per_config_rows
-                        else 0.0
-                    ),
-                    "correct_fraction": (
-                        sum(row["is_correct"] for row in per_config_rows) / len(per_config_rows)
-                        if per_config_rows
-                        else 0.0
-                    ),
-                    "positive_certified_fraction": (
-                        sum(row["reported_certified_radius"] > 0 for row in per_config_rows) / len(per_config_rows)
-                        if per_config_rows
-                        else 0.0
-                    ),
-                    "max_reported_radius": max(
-                        (row["reported_certified_radius"] for row in per_config_rows),
-                        default=0,
-                    ),
-                    "mean_pA_lower": (
-                        sum(row["pA_lower"] for row in per_config_rows) / len(per_config_rows)
-                        if per_config_rows
-                        else 0.0
-                    ),
-                }
-            )
+            candidate_summary.append(_summarize_config_rows(per_config_rows, config, threshold, "mainline"))
 
-        selected_config_counts = Counter(
-            row["config_label"] for row in per_threshold_best_rows if row["had_correct_candidate"]
+        for config in ablation_candidate_sweep:
+            per_config_rows = [row for row in per_threshold_ablation_rows if row["config_label"] == config["label"]]
+            ablation_summary.append(_summarize_config_rows(per_config_rows, config, threshold, "ablation"))
+
+        selector_summary_row = _summarize_selected_rows(
+            per_threshold_rows=per_threshold_selector_rows,
+            threshold=threshold,
+            summary_type="selector-heuristic",
         )
-        summary_row = {
-            "summary_type": "oracle-best-correct",
-            "model_variant": variant_name,
-            "attack_variant": attack_variant,
-            "threshold": float(threshold),
-            "evaluated_nodes": int(len(per_threshold_best_rows)),
-            "purified_plain_correct_fraction": (
-                sum(row["purified_is_correct"] for row in per_threshold_best_rows) / len(per_threshold_best_rows)
-                if per_threshold_best_rows
-                else 0.0
-            ),
-            "correct_fraction": (
-                sum(row["is_correct"] for row in per_threshold_best_rows) / len(per_threshold_best_rows)
-                if per_threshold_best_rows
-                else 0.0
-            ),
-            "positive_certified_fraction": (
-                sum(row["reported_certified_radius"] > 0 for row in per_threshold_best_rows)
-                / len(per_threshold_best_rows)
-                if per_threshold_best_rows
-                else 0.0
-            ),
-            "mean_reported_radius": (
-                sum(row["reported_certified_radius"] for row in per_threshold_best_rows)
-                / len(per_threshold_best_rows)
-                if per_threshold_best_rows
-                else 0.0
-            ),
-            "max_reported_radius": max(
-                (row["reported_certified_radius"] for row in per_threshold_best_rows),
-                default=0,
-            ),
-            "mean_pA_lower": (
-                sum(row["pA_lower"] for row in per_threshold_best_rows) / len(per_threshold_best_rows)
-                if per_threshold_best_rows
-                else 0.0
-            ),
-            "mean_target_edge_retention": (
-                sum(row["target_edge_retention"] for row in per_threshold_best_rows) / len(per_threshold_best_rows)
-                if per_threshold_best_rows
-                else 0.0
-            ),
-            "nodes_with_correct_config": int(sum(row["had_correct_candidate"] for row in per_threshold_best_rows)),
-            "nodes_without_correct_config": int(
-                sum(1 - row["had_correct_candidate"] for row in per_threshold_best_rows)
-            ),
-            "correct_selected_config_counts": _format_counter(selected_config_counts),
-        }
+        selector_summary.append(selector_summary_row)
+
+        summary_row = _summarize_selected_rows(
+            per_threshold_rows=per_threshold_best_rows,
+            threshold=threshold,
+            summary_type="oracle-best-correct",
+        )
         oracle_summary.append(summary_row)
         if emit_logs:
             print(
                 f"{log_prefix}variant={variant_name} | thr={threshold:.3f} | Oracle best-correct | "
                 f"Plain {summary_row['purified_plain_correct_fraction']:.4f} | "
                 f"Smooth-correct {summary_row['correct_fraction']:.4f} | "
+                f"Abstained {summary_row['correct_abstained_fraction']:.4f} | "
+                f"Zero-radius {summary_row['correct_zero_radius_fraction']:.4f} | "
                 f"Certified>0 {summary_row['positive_certified_fraction']:.4f} | "
                 f"Max radius {summary_row['max_reported_radius']} | "
                 f"Selected {summary_row['correct_selected_config_counts'] or 'none'}"
+            )
+            print(
+                f"{log_prefix}variant={variant_name} | thr={threshold:.3f} | Selector heuristic | "
+                f"Plain {selector_summary_row['purified_plain_correct_fraction']:.4f} | "
+                f"Smooth-correct {selector_summary_row['correct_fraction']:.4f} | "
+                f"Certified>0 {selector_summary_row['positive_certified_fraction']:.4f} | "
+                f"Selected {selector_summary_row['correct_selected_config_counts'] or 'none'} | "
+                f"Rules {selector_summary_row['selection_status_counts'] or 'none'}"
             )
 
     return {
         "candidate_rows": candidate_rows,
         "candidate_summary": candidate_summary,
+        "ablation_rows": ablation_rows,
+        "ablation_summary": ablation_summary,
+        "selector_rows": selector_rows,
+        "selector_summary": selector_summary,
         "oracle_rows": oracle_rows,
         "oracle_summary": oracle_summary,
     }
@@ -1620,18 +2140,44 @@ def _aggregate_multiseed_numeric_rows(rows, group_keys, metric_keys):
     return summary_rows
 
 
-def _run_multiseed_purified_certificate_summary(dataset, data, device):
-    print("\n=== Multi-seed purified certificate summary ===")
+def _run_multiseed_purified_certificate_summary(
+    dataset,
+    data,
+    device,
+    *,
+    model_architecture: str = DEFAULT_MODEL_ARCHITECTURE,
+    seeds=None,
+    target_count=None,
+    candidate_sweep=None,
+    ablation_sweep=None,
+    variant_labels=None,
+    attack_mode="standard",
+    adaptive_purification_thresholds=None,
+    adaptive_purification_operator="jaccard",
+    adaptive_max_perturbations=5,
+):
+    attack_mode_name = str(attack_mode or "standard").strip().lower()
+    summary_seeds = list(seeds) if seeds is not None else MULTI_SEED_PURIFIED_SUMMARY_SEEDS
+    target_count_goal = int(target_count) if target_count is not None else PURIFIED_CERTIFICATE_TARGET_COUNT
+    mainline_candidate_sweep = list(candidate_sweep) if candidate_sweep is not None else PURIFIED_CERTIFICATE_CANDIDATE_SWEEP
+    ablation_candidate_sweep = list(ablation_sweep) if ablation_sweep is not None else PURIFIED_CERTIFICATE_ABLATION_SWEEP
+    variant_specs = _filter_training_variant_specs(_build_additional_training_variant_specs(), variant_labels)
+
+    print(
+        "\n=== Multi-seed purified certificate summary ==="
+        f" dataset={dataset.name} arch={model_architecture} attack={attack_mode_name}"
+    )
     target_pool_rows = []
     fixed_config_per_seed_rows = []
+    ablation_per_seed_rows = []
+    selector_per_seed_rows = []
     oracle_per_seed_rows = []
-    variant_specs = _build_additional_training_variant_specs()
 
-    for seed in MULTI_SEED_PURIFIED_SUMMARY_SEEDS:
+    for seed in summary_seeds:
         print(f"\n--- Seed {seed} ---")
         set_seed(seed)
 
-        clean_model = _build_model(dataset, device)
+        clean_model = _build_model(dataset, device, model_architecture=model_architecture)
         clean_optimizer = torch.optim.Adam(clean_model.parameters(), lr=0.01, weight_decay=5e-4)
         _train_model(clean_model, data, clean_optimizer)
 
@@ -1640,7 +2186,7 @@ def _run_multiseed_purified_certificate_summary(dataset, data, device):
         warm_start_states = {"clean-training": deepcopy(clean_model.state_dict())}
 
         for variant_spec in variant_specs:
-            variant_model = _build_model(dataset, device)
+            variant_model = _build_model(dataset, device, model_architecture=model_architecture)
             warm_start_from = variant_spec.get("warm_start_from")
             if warm_start_from is not None:
                 variant_model.load_state_dict(deepcopy(warm_start_states[warm_start_from]))
@@ -1661,6 +2207,7 @@ def _run_multiseed_purified_certificate_summary(dataset, data, device):
             warm_start_states[variant_spec["label"]] = deepcopy(variant_model.state_dict())
 
         for bundle in variant_bundles:
+            attack_variant = bundle["variant"] if attack_mode_name == "standard" else f"{bundle['variant']}-{attack_mode_name}"
             attack_pool = _collect_nettack_result_pool(
                 target_model=bundle["model"],
                 data=data,
@@ -1668,19 +2215,23 @@ def _run_multiseed_purified_certificate_summary(dataset, data, device):
                 adj=adj,
                 features=features,
                 labels=labels,
-                target_count=PURIFIED_CERTIFICATE_TARGET_COUNT,
+                target_count=target_count_goal,
                 device=device,
+                attack_mode=attack_mode_name,
+                adaptive_purification_thresholds=adaptive_purification_thresholds,
+                adaptive_purification_operator=adaptive_purification_operator,
+                adaptive_max_perturbations=adaptive_max_perturbations,
             )
             target_pool_mode = "attempted-target-fallback" if attack_pool["used_fallback_pool"] else "successful-attacks"
             target_pool_rows.append(
                 {
                     "seed": int(seed),
                     "model_variant": bundle["variant"],
-                    "attack_variant": bundle["variant"],
+                    "attack_variant": attack_variant,
                     "attempted_nodes": int(attack_pool["attempted_nodes"]),
                     "successful_attacks": int(attack_pool["successful_attacks"]),
                     "evaluated_targets": int(len(attack_pool["selected_results"])),
-                    "target_count_goal": int(PURIFIED_CERTIFICATE_TARGET_COUNT),
+                    "target_count_goal": int(target_count_goal),
                     "target_pool_mode": target_pool_mode,
                 }
             )
@@ -1690,10 +2241,14 @@ def _run_multiseed_purified_certificate_summary(dataset, data, device):
                 data=data,
                 purified_certificate_results=attack_pool["selected_results"],
                 variant_name=bundle["variant"],
-                attack_variant=bundle["variant"],
+                attack_variant=attack_variant,
                 emit_logs=False,
+                candidate_sweep=mainline_candidate_sweep,
+                ablation_sweep=ablation_candidate_sweep,
             )
             fixed_config_per_seed_rows.extend({"seed": int(seed), **row} for row in sweep_bundle["candidate_summary"])
+            ablation_per_seed_rows.extend({"seed": int(seed), **row} for row in sweep_bundle["ablation_summary"])
+            selector_per_seed_rows.extend({"seed": int(seed), **row} for row in sweep_bundle["selector_summary"])
             oracle_per_seed_rows.extend({"seed": int(seed), **row} for row in sweep_bundle["oracle_summary"])
 
             for row in sweep_bundle["oracle_summary"]:
@@ -1709,27 +2264,114 @@ def _run_multiseed_purified_certificate_summary(dataset, data, device):
     )
     fixed_config_summary = _aggregate_multiseed_numeric_rows(
         rows=fixed_config_per_seed_rows,
-        group_keys=["model_variant", "attack_variant", "threshold", "config_label", "mode", "p_delete", "p_add", "max_additions"],
+        group_keys=[
+            "config_branch",
+            "model_variant",
+            "attack_variant",
+            "threshold",
+            "config_label",
+            "mode",
+            "purification_operator",
+            "purification_threshold",
+            "certificate_report_strategy",
+            "adaptive_profile",
+            "p_delete",
+            "p_add",
+            "max_additions",
+        ],
         metric_keys=[
             "evaluated_nodes",
             "purified_plain_correct_fraction",
             "correct_fraction",
+            "abstained_fraction",
+            "correct_abstained_fraction",
+            "correct_zero_radius_fraction",
             "positive_certified_fraction",
             "max_reported_radius",
             "mean_pA_lower",
+            "mean_lower_margin",
+            "mean_purified_confidence",
+            "mean_purified_margin",
+            "mean_target_degree",
+            "mean_resolved_p_delete",
+            "mean_resolved_p_add",
+            "mean_resolved_max_additions",
         ],
     )
-    oracle_summary = _aggregate_multiseed_numeric_rows(
-        rows=oracle_per_seed_rows,
-        group_keys=["model_variant", "attack_variant", "threshold"],
+    ablation_summary = _aggregate_multiseed_numeric_rows(
+        rows=ablation_per_seed_rows,
+        group_keys=[
+            "config_branch",
+            "model_variant",
+            "attack_variant",
+            "threshold",
+            "config_label",
+            "mode",
+            "purification_operator",
+            "purification_threshold",
+            "certificate_report_strategy",
+            "adaptive_profile",
+            "p_delete",
+            "p_add",
+            "max_additions",
+        ],
         metric_keys=[
             "evaluated_nodes",
             "purified_plain_correct_fraction",
             "correct_fraction",
+            "abstained_fraction",
+            "correct_abstained_fraction",
+            "correct_zero_radius_fraction",
+            "positive_certified_fraction",
+            "max_reported_radius",
+            "mean_pA_lower",
+            "mean_lower_margin",
+            "mean_purified_confidence",
+            "mean_purified_margin",
+            "mean_target_degree",
+            "mean_resolved_p_delete",
+            "mean_resolved_p_add",
+            "mean_resolved_max_additions",
+        ],
+    )
+    selector_summary = _aggregate_multiseed_numeric_rows(
+        rows=selector_per_seed_rows,
+        group_keys=["config_branch", "model_variant", "attack_variant", "threshold"],
+        metric_keys=[
+            "evaluated_nodes",
+            "purified_plain_correct_fraction",
+            "correct_fraction",
+            "abstained_fraction",
+            "correct_abstained_fraction",
+            "correct_zero_radius_fraction",
             "positive_certified_fraction",
             "mean_reported_radius",
             "max_reported_radius",
             "mean_pA_lower",
+            "mean_lower_margin",
+            "mean_target_edge_retention",
+            "mean_purified_confidence",
+            "mean_purified_margin",
+            "mean_target_degree",
+            "nodes_with_correct_config",
+            "nodes_without_correct_config",
+        ],
+    )
+    oracle_summary = _aggregate_multiseed_numeric_rows(
+        rows=oracle_per_seed_rows,
+        group_keys=["config_branch", "model_variant", "attack_variant", "threshold"],
+        metric_keys=[
+            "evaluated_nodes",
+            "purified_plain_correct_fraction",
+            "correct_fraction",
+            "abstained_fraction",
+            "correct_abstained_fraction",
+            "correct_zero_radius_fraction",
+            "positive_certified_fraction",
+            "mean_reported_radius",
+            "max_reported_radius",
+            "mean_pA_lower",
+            "mean_lower_margin",
             "mean_target_edge_retention",
             "nodes_with_correct_config",
             "nodes_without_correct_config",
@@ -1741,6 +2383,10 @@ def _run_multiseed_purified_certificate_summary(dataset, data, device):
         "target_pool_summary": target_pool_summary,
         "fixed_config_per_seed_rows": fixed_config_per_seed_rows,
         "fixed_config_summary": fixed_config_summary,
+        "ablation_per_seed_rows": ablation_per_seed_rows,
+        "ablation_summary": ablation_summary,
+        "selector_per_seed_rows": selector_per_seed_rows,
+        "selector_summary": selector_summary,
         "oracle_per_seed_rows": oracle_per_seed_rows,
         "oracle_summary": oracle_summary,
     }
@@ -1753,10 +2399,23 @@ def run_single_experiment(
     dataset_name: str,
     smoothing_modes,
     epochs: int,
+    device_override: str = "auto",
     run_purified_multiseed_summary: bool = True,
 ):
     set_seed(seed)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    normalized_device = (device_override or "auto").lower()
+    if normalized_device == "auto":
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    elif normalized_device == "cuda":
+        if not torch.cuda.is_available():
+            raise RuntimeError("CUDA requested with --device cuda, but torch.cuda.is_available() is False.")
+        device = torch.device("cuda")
+    elif normalized_device == "cpu":
+        device = torch.device("cpu")
+    else:
+        raise ValueError(f"Unsupported device override: {device_override}")
+
+    print(f"Using device: {device}")
     results_dir = ensure_results_dir(results_dir)
     smoothing_modes = list(smoothing_modes or DEFAULT_SMOOTHING_MODES)
 
@@ -2152,11 +2811,17 @@ def run_single_experiment(
     nettack_target_purification_summary = []
     purified_certificate_candidate_rows = []
     purified_certificate_candidate_summary = []
+    purified_certificate_ablation_rows = []
+    purified_certificate_ablation_summary = []
+    purified_certificate_selector_rows = []
+    purified_certificate_selector_summary = []
     purified_certificate_rows = []
     purified_certificate_summary = []
     purified_certificate_target_pools = []
     purified_certificate_fixed_config_rows = purified_certificate_candidate_rows
     purified_certificate_fixed_config_summary = purified_certificate_candidate_summary
+    purified_certificate_legacy_ablation_rows = purified_certificate_ablation_rows
+    purified_certificate_legacy_ablation_summary = purified_certificate_ablation_summary
     purified_certificate_oracle_rows = purified_certificate_rows
     purified_certificate_oracle_summary = purified_certificate_summary
     focus_purification_rows = []
@@ -2237,11 +2902,15 @@ def run_single_experiment(
             )
 
         print("\n=== Post-purification certificate sweeps ===")
-        purified_certificate_models = [
-            {"variant": "clean-training", "model": model, "initial_results": nettack_results},
-            {"variant": MATCHED_SPARSE_TRAINING_LABEL, "model": robust_model, "initial_results": None},
-            {"variant": CERTIFICATE_ORIENTED_TRAINING_LABEL, "model": certificate_model, "initial_results": None},
-        ]
+        purified_certificate_models = [{"variant": "clean-training", "model": model, "initial_results": nettack_results}]
+        purified_certificate_models.extend(
+            {
+                "variant": bundle["label"],
+                "model": bundle["model"],
+                "initial_results": None,
+            }
+            for bundle in additional_variant_bundles.values()
+        )
         for model_bundle in purified_certificate_models:
             variant_name = model_bundle["variant"]
             sweep_model = model_bundle["model"]
@@ -2283,6 +2952,10 @@ def run_single_experiment(
             )
             purified_certificate_candidate_rows.extend(sweep_bundle["candidate_rows"])
             purified_certificate_candidate_summary.extend(sweep_bundle["candidate_summary"])
+            purified_certificate_ablation_rows.extend(sweep_bundle["ablation_rows"])
+            purified_certificate_ablation_summary.extend(sweep_bundle["ablation_summary"])
+            purified_certificate_selector_rows.extend(sweep_bundle["selector_rows"])
+            purified_certificate_selector_summary.extend(sweep_bundle["selector_summary"])
             purified_certificate_rows.extend(sweep_bundle["oracle_rows"])
             purified_certificate_summary.extend(sweep_bundle["oracle_summary"])
 
@@ -2417,6 +3090,10 @@ def run_single_experiment(
         "purified_certificate_target_pools": purified_certificate_target_pools,
         "purified_certificate_fixed_config_summary": purified_certificate_fixed_config_summary,
         "purified_certificate_fixed_config_rows": purified_certificate_fixed_config_rows,
+        "purified_certificate_ablation_summary": purified_certificate_legacy_ablation_summary,
+        "purified_certificate_ablation_rows": purified_certificate_legacy_ablation_rows,
+        "purified_certificate_selector_summary": purified_certificate_selector_summary,
+        "purified_certificate_selector_rows": purified_certificate_selector_rows,
         "purified_certificate_oracle_summary": purified_certificate_oracle_summary,
         "purified_certificate_oracle_rows": purified_certificate_oracle_rows,
         "purified_certificate_candidate_summary": purified_certificate_fixed_config_summary,
@@ -2513,6 +3190,10 @@ def run_single_experiment(
                 "purified_certificate_multiseed_target_pool_summary": multiseed_purified_bundle["target_pool_summary"],
                 "purified_certificate_multiseed_fixed_config_per_seed": multiseed_purified_bundle["fixed_config_per_seed_rows"],
                 "purified_certificate_multiseed_fixed_config_summary": multiseed_purified_bundle["fixed_config_summary"],
+                "purified_certificate_multiseed_ablation_per_seed": multiseed_purified_bundle["ablation_per_seed_rows"],
+                "purified_certificate_multiseed_ablation_summary": multiseed_purified_bundle["ablation_summary"],
+                "purified_certificate_multiseed_selector_per_seed": multiseed_purified_bundle["selector_per_seed_rows"],
+                "purified_certificate_multiseed_selector_summary": multiseed_purified_bundle["selector_summary"],
                 "purified_certificate_multiseed_oracle_per_seed": multiseed_purified_bundle["oracle_per_seed_rows"],
                 "purified_certificate_multiseed_oracle_summary": multiseed_purified_bundle["oracle_summary"],
             }
@@ -2551,6 +3232,10 @@ def run_single_experiment(
     save_csv_rows(results_dir / "purified_certificate_target_pools.csv", purified_certificate_target_pools)
     save_csv_rows(results_dir / "purified_certificate_fixed_config_sweep.csv", purified_certificate_fixed_config_summary)
     save_csv_rows(results_dir / "purified_certificate_fixed_config_rows.csv", purified_certificate_fixed_config_rows)
+    save_csv_rows(results_dir / "purified_certificate_ablation_sweep.csv", purified_certificate_legacy_ablation_summary)
+    save_csv_rows(results_dir / "purified_certificate_ablation_rows.csv", purified_certificate_legacy_ablation_rows)
+    save_csv_rows(results_dir / "purified_certificate_selector_sweep.csv", purified_certificate_selector_summary)
+    save_csv_rows(results_dir / "purified_certificate_selector_rows.csv", purified_certificate_selector_rows)
     save_csv_rows(results_dir / "purified_certificate_oracle_sweep.csv", purified_certificate_oracle_summary)
     save_csv_rows(results_dir / "purified_certificate_oracle_rows.csv", purified_certificate_oracle_rows)
     save_csv_rows(results_dir / "purified_certificate_candidate_sweep.csv", purified_certificate_fixed_config_summary)
@@ -2568,6 +3253,10 @@ def run_single_experiment(
         save_csv_rows(results_dir / "purified_certificate_multiseed_target_pool_summary.csv", multiseed_purified_bundle["target_pool_summary"])
         save_csv_rows(results_dir / "purified_certificate_multiseed_fixed_config_per_seed.csv", multiseed_purified_bundle["fixed_config_per_seed_rows"])
         save_csv_rows(results_dir / "purified_certificate_multiseed_fixed_config_summary.csv", multiseed_purified_bundle["fixed_config_summary"])
+        save_csv_rows(results_dir / "purified_certificate_multiseed_ablation_per_seed.csv", multiseed_purified_bundle["ablation_per_seed_rows"])
+        save_csv_rows(results_dir / "purified_certificate_multiseed_ablation_summary.csv", multiseed_purified_bundle["ablation_summary"])
+        save_csv_rows(results_dir / "purified_certificate_multiseed_selector_per_seed.csv", multiseed_purified_bundle["selector_per_seed_rows"])
+        save_csv_rows(results_dir / "purified_certificate_multiseed_selector_summary.csv", multiseed_purified_bundle["selector_summary"])
         save_csv_rows(results_dir / "purified_certificate_multiseed_oracle_per_seed.csv", multiseed_purified_bundle["oracle_per_seed_rows"])
         save_csv_rows(results_dir / "purified_certificate_multiseed_oracle_summary.csv", multiseed_purified_bundle["oracle_summary"])
     save_csv_rows(results_dir / "attack_budget_accuracy.csv", global_attack_rows)
@@ -2626,6 +3315,12 @@ def run_single_experiment(
 def build_arg_parser():
     parser = argparse.ArgumentParser(description="Run certified robustness experiments for GNNs.")
     parser.add_argument("--dataset", default="Cora", help="Planetoid dataset name, e.g. Cora, CiteSeer, PubMed.")
+    parser.add_argument(
+        "--device",
+        choices=["auto", "cpu", "cuda"],
+        default="auto",
+        help="Execution device. Use auto to prefer CUDA when available.",
+    )
     parser.add_argument("--seed", type=int, default=None, help="Single random seed. Ignored when --seeds is set.")
     parser.add_argument("--seeds", type=_parse_seed_list, default=None, help="Comma-separated seeds, e.g. 42,43,44.")
     parser.add_argument("--output-dir", default="results", help="Directory where artifacts are written.")
@@ -2660,6 +3355,11 @@ def build_arg_parser():
     parser.add_argument("--asymmetric-max-delete", type=int, default=ASYMMETRIC_CERTIFICATE_MAX_DELETE)
     parser.add_argument("--asymmetric-max-add", type=int, default=ASYMMETRIC_CERTIFICATE_MAX_ADD)
     parser.add_argument("--nettack-targets", type=int, default=NETTACK_TARGET_COUNT, help="Nettack target nodes; 0 skips Nettack.")
+    parser.add_argument(
+        "--skip-purified-multiseed-summary",
+        action="store_true",
+        help="Skip the expensive single-seed purified multiseed summary artifacts.",
+    )
     parser.add_argument(
         "--smoothing-modes",
         type=_parse_smoothing_modes,
@@ -2718,7 +3418,8 @@ def main():
             dataset_name=args.dataset,
             smoothing_modes=args.smoothing_modes,
             epochs=args.epochs,
-            run_purified_multiseed_summary=(len(seeds) == 1),
+            device_override=args.device,
+            run_purified_multiseed_summary=(len(seeds) == 1 and not args.skip_purified_multiseed_summary),
         )
         payloads.append(payload)
 

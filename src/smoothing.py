@@ -58,6 +58,28 @@ def _pairs_to_edge_index(pairs: torch.Tensor) -> torch.Tensor:
     return torch.cat([pairs, reverse_pairs], dim=1)
 
 
+
+def _batched_edge_index_from_pairs_batch(
+    sampled_pairs_batch: Sequence[torch.Tensor],
+    num_nodes: int,
+) -> torch.Tensor:
+    if not sampled_pairs_batch:
+        raise ValueError("sampled_pairs_batch must contain at least one sample")
+
+    batched_edge_indices = []
+    for batch_idx, sampled_pairs in enumerate(sampled_pairs_batch):
+        edge_index = _pairs_to_edge_index(sampled_pairs)
+        if batch_idx > 0:
+            edge_index = edge_index + (batch_idx * num_nodes)
+        batched_edge_indices.append(edge_index)
+
+    return torch.cat(batched_edge_indices, dim=1)
+
+
+def _supports_cuda_batched_forward(model) -> bool:
+    model_name = type(model).__name__.lower()
+    return "sage" not in model_name
+
 def _ensure_nonempty_pairs(sampled_pairs: torch.Tensor, reference_pairs: torch.Tensor) -> torch.Tensor:
     if sampled_pairs.size(1) > 0 or reference_pairs.size(1) == 0:
         return sampled_pairs
@@ -322,28 +344,69 @@ def collect_smoothed_vote_counts_with_edge_index(
     else:
         vote_counts = torch.zeros(num_classes, dtype=torch.long, device=device)
 
+    use_batched_forward = device.type == "cuda" and batch_size > 1 and _supports_cuda_batched_forward(model)
+    batched_x_cache: Dict[int, torch.Tensor] = {}
+
     for start in range(0, num_samples, batch_size):
         cur_batch = min(batch_size, num_samples - start)
-        for _ in range(cur_batch):
-            sampled_pairs = _sample_smoothed_pairs(
-                unique_pairs=unique_pairs,
-                num_nodes=num_nodes,
-                mode=mode,
-                p_delete=p_delete,
-                p_add=p_add,
-                target_node=target_node,
-                max_additions=max_additions,
-                target_sampler=target_sampler,
-            )
-            noisy_edge_index = _pairs_to_edge_index(sampled_pairs)
-            out = model(x, noisy_edge_index)
+        if not use_batched_forward or cur_batch == 1:
+            for _ in range(cur_batch):
+                sampled_pairs = _sample_smoothed_pairs(
+                    unique_pairs=unique_pairs,
+                    num_nodes=num_nodes,
+                    mode=mode,
+                    p_delete=p_delete,
+                    p_add=p_add,
+                    target_node=target_node,
+                    max_additions=max_additions,
+                    target_sampler=target_sampler,
+                )
+                noisy_edge_index = _pairs_to_edge_index(sampled_pairs)
+                out = model(x, noisy_edge_index)
 
-            if target_node is None:
-                pred = out.argmax(dim=1)
-                vote_counts[torch.arange(num_nodes, device=device), pred] += 1
-            else:
-                pred = int(out[target_node].argmax().item())
-                vote_counts[pred] += 1
+                if target_node is None:
+                    pred = out.argmax(dim=1)
+                    vote_counts[torch.arange(num_nodes, device=device), pred] += 1
+                else:
+                    pred = int(out[target_node].argmax().item())
+                    vote_counts[pred] += 1
+            continue
+
+        sampled_pairs_batch = []
+        for _ in range(cur_batch):
+            sampled_pairs_batch.append(
+                _sample_smoothed_pairs(
+                    unique_pairs=unique_pairs,
+                    num_nodes=num_nodes,
+                    mode=mode,
+                    p_delete=p_delete,
+                    p_add=p_add,
+                    target_node=target_node,
+                    max_additions=max_additions,
+                    target_sampler=target_sampler,
+                )
+            )
+
+        if cur_batch == 1:
+            batched_x = x
+        else:
+            batched_x = batched_x_cache.get(cur_batch)
+            if batched_x is None:
+                batched_x = x.repeat(cur_batch, 1)
+                batched_x_cache[cur_batch] = batched_x
+
+        batched_edge_index = _batched_edge_index_from_pairs_batch(
+            sampled_pairs_batch=sampled_pairs_batch,
+            num_nodes=num_nodes,
+        )
+        out = model(batched_x, batched_edge_index).reshape(cur_batch, num_nodes, num_classes)
+
+        if target_node is None:
+            pred = out.argmax(dim=2)
+            vote_counts += torch.nn.functional.one_hot(pred, num_classes=num_classes).sum(dim=0).to(vote_counts.dtype)
+        else:
+            pred = out[:, target_node, :].argmax(dim=1)
+            vote_counts += torch.bincount(pred, minlength=num_classes)
 
     return vote_counts
 
@@ -414,6 +477,7 @@ def smoothed_predict_node(
     edge_index: torch.Tensor,
     node_idx: int,
     num_samples: int = 1000,
+    batch_size: int = 50,
     mode: str = "symmetric-edge-flip",
     p_delete: float = 0.1,
     p_add: float = 0.0,
@@ -424,7 +488,7 @@ def smoothed_predict_node(
         x=x,
         edge_index=edge_index,
         num_samples=num_samples,
-        batch_size=1,
+        batch_size=batch_size,
         mode=mode,
         p_delete=p_delete,
         p_add=p_add,
@@ -672,7 +736,9 @@ def certify_node_from_votes(
     p_a_lower = _one_sided_clopper_pearson_lower(n_a, total, alpha_tail)
     p_b_upper = _one_sided_clopper_pearson_upper(n_b, total, alpha_tail)
     p_rest_upper = max(0.0, 1.0 - p_a_lower)
+    top2_upper = min(p_b_upper, p_rest_upper)
     abstained = p_a_lower <= p_rest_upper
+    top2_abstained = p_a_lower <= top2_upper
 
     certified_radius = None
     runner_up_radius = None
@@ -684,44 +750,49 @@ def certify_node_from_votes(
     elif beta is not None:
         certificate_kind = "symmetric"
 
-    if certificate_kind == "asymmetric" and not abstained:
-        asymmetric_certificate = certify_asymmetric_radius_from_bounds(
-            p_lower=p_a_lower,
-            p_upper=p_rest_upper,
-            p_delete=p_delete,
-            p_add=p_add,
-            num_present=num_present,
-            num_absent=num_absent,
-            max_radius=max_radius,
-            max_delete=max_delete,
-            max_add=max_add,
-        )
-        runner_up_asymmetric_certificate = certify_asymmetric_radius_from_bounds(
-            p_lower=p_a_lower,
-            p_upper=min(p_b_upper, p_rest_upper),
-            p_delete=p_delete,
-            p_add=p_add,
-            num_present=num_present,
-            num_absent=num_absent,
-            max_radius=max_radius,
-            max_delete=max_delete,
-            max_add=max_add,
-        )
-        certified_radius = int(asymmetric_certificate["total_radius"])
-        runner_up_radius = int(runner_up_asymmetric_certificate["total_radius"])
-    elif certificate_kind == "symmetric" and not abstained:
-        certified_radius = certify_radius_from_bounds(
-            p_lower=p_a_lower,
-            p_upper=p_rest_upper,
-            beta=beta,
-            max_radius=max_radius,
-        )
-        runner_up_radius = certify_radius_from_bounds(
-            p_lower=p_a_lower,
-            p_upper=min(p_b_upper, p_rest_upper),
-            beta=beta,
-            max_radius=max_radius,
-        )
+    if certificate_kind == "asymmetric":
+        if not abstained:
+            asymmetric_certificate = certify_asymmetric_radius_from_bounds(
+                p_lower=p_a_lower,
+                p_upper=p_rest_upper,
+                p_delete=p_delete,
+                p_add=p_add,
+                num_present=num_present,
+                num_absent=num_absent,
+                max_radius=max_radius,
+                max_delete=max_delete,
+                max_add=max_add,
+            )
+            certified_radius = int(asymmetric_certificate["total_radius"])
+
+        if not top2_abstained:
+            runner_up_asymmetric_certificate = certify_asymmetric_radius_from_bounds(
+                p_lower=p_a_lower,
+                p_upper=top2_upper,
+                p_delete=p_delete,
+                p_add=p_add,
+                num_present=num_present,
+                num_absent=num_absent,
+                max_radius=max_radius,
+                max_delete=max_delete,
+                max_add=max_add,
+            )
+            runner_up_radius = int(runner_up_asymmetric_certificate["total_radius"])
+    elif certificate_kind == "symmetric":
+        if not abstained:
+            certified_radius = certify_radius_from_bounds(
+                p_lower=p_a_lower,
+                p_upper=p_rest_upper,
+                beta=beta,
+                max_radius=max_radius,
+            )
+        if not top2_abstained:
+            runner_up_radius = certify_radius_from_bounds(
+                p_lower=p_a_lower,
+                p_upper=top2_upper,
+                beta=beta,
+                max_radius=max_radius,
+            )
 
     return {
         "top_class": top_class,
@@ -735,9 +806,12 @@ def certify_node_from_votes(
         "pA_lower": p_a_lower,
         "pB_upper": p_b_upper,
         "p_rest_upper": p_rest_upper,
+        "top2_upper": top2_upper,
         "margin": p_a_hat - p_b_hat,
         "lower_margin": p_a_lower - p_rest_upper,
+        "top2_lower_margin": p_a_lower - top2_upper,
         "abstained": abstained,
+        "top2_abstained": top2_abstained,
         "certificate_kind": certificate_kind,
         "confidence_level": 1.0 - alpha,
         "certified_radius": certified_radius,

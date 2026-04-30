@@ -1,0 +1,9 @@
+config_family,config_label,p_delete,p_add,evaluated_targets,correct_targets,positive_fraction_on_correct,strict_positive_fraction_on_correct,runner_positive_fraction_on_correct,runner_relief_fraction_on_correct,unit_delete_feasible_fraction_on_correct,unit_add_feasible_fraction_on_correct,budget_search_mismatches,mean_pA_lower_on_correct,mean_p_rest_upper_on_correct
+legacy-low-noise,legacy-sparse-asym-0.01,0.01,5e-06,6,4,0.0,0.0,0.0,0.0,0.0,0.0,0,0.9180736751541833,0.08192632484581677
+legacy-low-noise,legacy-sparse-asym-0.02,0.02,1e-05,6,4,0.0,0.0,0.0,0.0,0.0,0.0,0,0.8918149295247956,0.10818507047520443
+legacy-low-noise,legacy-sparse-asym-0.05,0.05,2e-05,6,4,0.0,0.0,0.0,0.0,0.0,0.0,0,0.8242637059704825,0.1757362940295175
+active-cert-grid,sparse-asym-0.05,0.05,2e-05,6,4,0.0,0.0,0.0,0.0,0.0,0.0,0,0.7975540843343957,0.20244591566560433
+active-cert-grid,sparse-asym-del-0.08,0.08,3.2e-05,6,4,0.0,0.0,0.0,0.0,0.0,0.0,0,0.7959117009679577,0.2040882990320422
+active-cert-grid,sparse-asym-del-0.10,0.1,4e-05,6,4,0.0,0.0,0.0,0.0,0.0,0.0,0,0.7372355037241496,0.26276449627585036
+active-cert-grid,sparse-asym-mixed-0.10,0.1,0.01,6,5,0.0,0.0,0.0,0.0,0.0,0.0,0,0.8250861658043307,0.17491383419566925
+active-cert-grid,balanced-sparse-0.2,0.2,0.2,6,5,1.0,1.0,1.0,0.0,1.0,1.0,0,0.934844975389149,0.06515502461085106

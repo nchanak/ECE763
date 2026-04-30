@@ -16,7 +16,7 @@ Current Project State
 
 - The purified certificate sweep now builds attack-aligned Nettack pools separately for the clean, matched sparse-noisy, and clean-warmstart symmetric fine-tuning models. Pool metadata is saved in [results/purified_certificate_target_pools.csv](results/purified_certificate_target_pools.csv).
 
-- The pipeline can also emit a five-seed attack-aligned purified summary with `mean`, `sample_std`, `sem`, and `95%` confidence-interval columns in [results/purified_certificate_multiseed_oracle_summary.csv](results/purified_certificate_multiseed_oracle_summary.csv), [results/purified_certificate_multiseed_fixed_config_summary.csv](results/purified_certificate_multiseed_fixed_config_summary.csv), and the matching per-seed CSVs.
+- The pipeline can also emit a reduced three-seed attack-aligned purified summary for the current mainline-vs-ablation setup. The latest checked run is written under [results/purified_mainline_multiseed_v3/purified_certificate_multiseed_oracle_summary.csv](results/purified_mainline_multiseed_v3/purified_certificate_multiseed_oracle_summary.csv), [results/purified_mainline_multiseed_v3/purified_certificate_multiseed_fixed_config_summary.csv](results/purified_mainline_multiseed_v3/purified_certificate_multiseed_fixed_config_summary.csv), [results/purified_mainline_multiseed_v3/purified_certificate_multiseed_ablation_summary.csv](results/purified_mainline_multiseed_v3/purified_certificate_multiseed_ablation_summary.csv), and the matching per-seed CSVs.
 
 - The certificate-oriented warm-start variant writes its own training and global-attack artifacts to [results/certificate_oriented_training_history.csv](results/certificate_oriented_training_history.csv) and [results/certificate_oriented_attack_budget_accuracy.csv](results/certificate_oriented_attack_budget_accuracy.csv).
 
@@ -50,17 +50,17 @@ python main.py --sparse-flip-sweep "0.01:0.000005:64;0.02:0.000010:96;0.05:0.000
 
 Latest Result Snapshot
 
-- Latest confirmed single-seed summary: clean test accuracy 0.817, matched sparse-noisy test accuracy 0.811, clean-warmstart symmetric fine-tune test accuracy 0.814. The corresponding summary rows are written to [results/training_variant_summary.csv](results/training_variant_summary.csv) when the updated pipeline is rerun.
+- Latest confirmed purified multiseed summary: the mainline certificate family is now balanced-sparse-0.2 plus the nearby symmetric configs, with the legacy low-noise asymmetric family retained only as an ablation branch. The latest checked run is in [results/purified_mainline_multiseed_v3](results/purified_mainline_multiseed_v3).
 
-- Under PRBCD budget 50 in the latest confirmed single-seed validation, the clean model drops to 0.788 test accuracy, the matched sparse-noisy model drops to 0.764, and the clean-warmstart symmetric fine-tune model drops to 0.783. See [results/attack_budget_accuracy.csv](results/attack_budget_accuracy.csv), [results/robust_attack_budget_accuracy.csv](results/robust_attack_budget_accuracy.csv), and [results/certificate_oriented_attack_budget_accuracy.csv](results/certificate_oriented_attack_budget_accuracy.csv).
+- On the oracle purified multiseed summary, `clean-training` and `clean-warmstart-symmetric-finetune` are still the strongest training variants. They reach about `0.434-0.462` mean correct fraction and `0.268-0.295` mean positive-certified fraction depending on threshold, with roughly `5.0-5.33` nodes per seed having at least one correct certifiable config. See [results/purified_mainline_multiseed_v3/purified_certificate_multiseed_oracle_summary.csv](results/purified_mainline_multiseed_v3/purified_certificate_multiseed_oracle_summary.csv).
 
-- Target-node Jaccard purification still recovers 4 of 5 sampled Nettack targets at thresholds 0.01 to 0.05. See [results/nettack_target_purification_sweep.csv](results/nettack_target_purification_sweep.csv).
+- `matched-sparse-noisy-training` remains a secondary robustness-alignment branch rather than the mainline leader. In the same oracle summary it reaches about `0.389-0.417` mean correct fraction and `0.167-0.194` mean positive-certified fraction.
 
-- On the attack-aligned fixed-config purified sweep, the clean model only gets positive radii from the strong symmetric configuration, while the matched sparse-noisy model keeps better purified correctness with `sparse-asym-0.01` but gets zero positive certified cases on its own attacked target pool. See [results/purified_certificate_fixed_config_sweep.csv](results/purified_certificate_fixed_config_sweep.csv).
+- `balanced-sparse-noisy-training` did not validate as the new aligned-training direction. In the oracle summary it stays at `0.1389` mean correct fraction and `0.1389` mean positive-certified fraction at all thresholds, with only `1.67` nodes per seed finding a correct certifiable config.
 
-- On the oracle purified sweep, the clean model reaches 6/11 purified-correct targets with 1/11 positive certified targets at thresholds 0.01, 0.02, and 0.05. The matched sparse-noisy model reaches 7/11 purified-correct targets at thresholds 0.01 and 0.02, but 0/11 positive certified targets after switching to its own attack-aligned Nettack pool. See [results/purified_certificate_oracle_sweep.csv](results/purified_certificate_oracle_sweep.csv).
+- On the fixed-config summary, the best deployable mainline configs are still in the revised family rather than the legacy asymmetric family. `symmetric-0.3` is the most consistently strong fixed config for the clean and warm-started models, while `balanced-sparse-0.2` remains a reasonable fixed baseline inside the same family. See [results/purified_mainline_multiseed_v3/purified_certificate_multiseed_fixed_config_summary.csv](results/purified_mainline_multiseed_v3/purified_certificate_multiseed_fixed_config_summary.csv).
 
-- The previous checked-in multiseed CSVs came from a shorter three-seed run. The updated code expands that summary to five seeds and records uncertainty columns directly in the aggregate CSVs so that comparisons are reported with explicit dispersion instead of just min/max spread.
+- In the ablation summary, the legacy low-noise asymmetric configs at `0.01` and `0.02` still collapse to zero positive-certified fraction across variants, which is why they remain ablation-only evidence. The looser `0.05` legacy asymmetric config can recover some positive certification, but it does not change the main direction. See [results/purified_mainline_multiseed_v3/purified_certificate_multiseed_ablation_summary.csv](results/purified_mainline_multiseed_v3/purified_certificate_multiseed_ablation_summary.csv).
 
 How To Read The Purified Results
 
@@ -72,11 +72,13 @@ How To Read The Purified Results
 
 Remaining Gaps
 
-- The multiseed purified rerun is expensive because it evaluates three model variants across five seeds with confidence intervals. Regenerate those CSVs locally when you need updated aggregate numbers.
+- The multiseed purified rerun is still expensive because it evaluates multiple model variants and certificate configs across a reduced three-seed attack-aligned sweep. Regenerate those CSVs locally when you need updated aggregate numbers.
 
-- Sparse asymmetric certificates remain the best way to preserve purified correctness, but they still do not yield positive radii on the current purified Nettack targets.
+- The active asymmetric certificate sweep is now decoupled from the mainline purified grid. The old `0.01` and `0.02` sparse asymmetric configs are retained only for diagnostics because they still collapse to zero-radius in the multiseed purified ablation summary.
 
-- The clean-warmstart symmetric fine-tuning variant improves the certificate-oriented single-seed tradeoff relative to the matched sparse-noisy model on the current validation run, but it still needs the full five-seed rerun before making a stronger claim.
+- Use [scripts/run_asymmetric_certificate_isolation.py](scripts/run_asymmetric_certificate_isolation.py) to isolate three competing explanations for zero-radius collapse on purified targets: the strict `p_rest_upper` bound, the delete/add budget search itself, and the sparse candidate grid. The script writes detailed and summary CSVs under `results/asymmetric_certificate_isolation_v1` by default.
+
+- The clean and clean-warmstart symmetric fine-tuning variants are the primary baselines to beat on the current purified certificate benchmark. The matched sparse-noisy variant remains worth iterating, but balanced-sparse-noisy-training should be treated as secondary until its training noise is redesigned.
 
 - The saved CSV diagnostics are variant-specific, but the existing PNG plot outputs still visualize the clean focus node for continuity with the older report layout.
 

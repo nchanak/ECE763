@@ -1,0 +1,2 @@
+variant,budget,test_accuracy,flipped_edges
+clean-warmstart-symmetric-finetune,5,0.783,5

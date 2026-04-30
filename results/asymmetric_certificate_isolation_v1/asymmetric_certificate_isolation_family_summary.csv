@@ -1,0 +1,3 @@
+config_family,evaluated_targets,correct_targets,positive_fraction_on_correct,strict_positive_fraction_on_correct,runner_positive_fraction_on_correct,runner_relief_fraction_on_correct,unit_delete_feasible_fraction_on_correct,unit_add_feasible_fraction_on_correct,budget_search_mismatches,mean_pA_lower_on_correct,mean_p_rest_upper_on_correct
+legacy-low-noise,18,12,0.0,0.0,0.0,0.0,0.0,0.0,0,0.8780507702164871,0.1219492297835129
+active-cert-grid,30,22,0.22727272727272727,0.22727272727272727,0.22727272727272727,0.0,0.22727272727272727,0.22727272727272727,0,0.8237482210033368,0.17625177899666317

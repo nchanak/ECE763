@@ -1,0 +1,5 @@
+p_flip,evaluated_nodes,correct_fraction,positive_certified_accuracy,certified_fraction_on_correct,mean_certified_radius_on_correct
+0.01,10,0.0,0.0,0.0,0.0
+0.02,10,0.0,0.0,0.0,0.0
+0.05,10,0.0,0.0,0.0,0.0
+0.1,10,0.0,0.0,0.0,0.0

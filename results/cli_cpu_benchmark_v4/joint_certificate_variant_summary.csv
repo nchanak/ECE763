@@ -1,0 +1,15 @@
+subset_name,variant,certificate_family,p_flip,evaluated_nodes,correct_fraction,positive_certified_accuracy,certified_fraction_on_correct,mean_certified_radius_on_correct,p_delete,p_add,max_additions
+jointly-correct,clean-training,symmetric,0.01,10,0.2,0.0,0.0,0.0,,,
+jointly-correct,clean-training,symmetric,0.02,10,0.2,0.0,0.0,0.0,,,
+jointly-correct,clean-training,symmetric,0.05,10,0.2,0.0,0.0,0.0,,,
+jointly-correct,clean-training,symmetric,0.1,10,0.2,0.0,0.0,0.0,,,
+jointly-correct,clean-training,sparse,,10,1.0,0.0,0.0,0.0,0.01,5e-06,64
+jointly-correct,clean-training,sparse,,10,1.0,0.0,0.0,0.0,0.02,1e-05,96
+jointly-correct,clean-training,sparse,,10,1.0,0.0,0.0,0.0,0.05,2e-05,160
+jointly-correct,matched-sparse-noisy-training,symmetric,0.01,10,0.7,0.0,0.0,0.0,,,
+jointly-correct,matched-sparse-noisy-training,symmetric,0.02,10,0.6,0.0,0.0,0.0,,,
+jointly-correct,matched-sparse-noisy-training,symmetric,0.05,10,0.5,0.0,0.0,0.0,,,
+jointly-correct,matched-sparse-noisy-training,symmetric,0.1,10,0.5,0.0,0.0,0.0,,,
+jointly-correct,matched-sparse-noisy-training,sparse,,10,1.0,0.0,0.0,0.0,0.01,5e-06,64
+jointly-correct,matched-sparse-noisy-training,sparse,,10,1.0,0.0,0.0,0.0,0.02,1e-05,96
+jointly-correct,matched-sparse-noisy-training,sparse,,10,1.0,0.0,0.0,0.0,0.05,2e-05,160

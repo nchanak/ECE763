@@ -5,6 +5,8 @@ import torch
 from deeprobust.graph.targeted_attack import Nettack
 from deeprobust.graph.defense import GCN as DRGCN
 
+from src.purification import purify_target_node_edges
+
 # Targeted attack, flips prediction with single edge flip
 def pyg_to_scipy_adj(data) -> sp.csr_matrix:
     row = data.edge_index[0].cpu().numpy()
@@ -172,7 +174,7 @@ def train_deeprobust_surrogate(data, device="cpu"):
     return surrogate, adj, features, labels
 
 
-def run_nettack_on_node(
+def _run_single_nettack_attack(
     target_model,
     data,
     surrogate,
@@ -180,7 +182,7 @@ def run_nettack_on_node(
     features,
     labels,
     target_node,
-    n_perturbations=3,
+    n_perturbations,
     device="cpu",
 ):
     attack_model = Nettack(
@@ -203,9 +205,33 @@ def run_nettack_on_node(
 
     modified_adj = attack_model.modified_adj
     attacked_edge_index = scipy_adj_to_edge_index(modified_adj, device=device)
-
-    clean_pred, _ = predict_node(target_model, data, data.edge_index, target_node)
     attacked_pred, _ = predict_node(target_model, data, attacked_edge_index, target_node)
+    return attacked_edge_index, int(attacked_pred), attack_model.structure_perturbations
+
+
+def run_nettack_on_node(
+    target_model,
+    data,
+    surrogate,
+    adj,
+    features,
+    labels,
+    target_node,
+    n_perturbations=3,
+    device="cpu",
+):
+    clean_pred, _ = predict_node(target_model, data, data.edge_index, target_node)
+    attacked_edge_index, attacked_pred, perturbations = _run_single_nettack_attack(
+        target_model=target_model,
+        data=data,
+        surrogate=surrogate,
+        adj=adj,
+        features=features,
+        labels=labels,
+        target_node=target_node,
+        n_perturbations=n_perturbations,
+        device=device,
+    )
 
     return {
         "target_node": int(target_node),
@@ -213,6 +239,93 @@ def run_nettack_on_node(
         "clean_pred": int(clean_pred),
         "attacked_pred": int(attacked_pred),
         "success": int(attacked_pred) != int(data.y[target_node].item()),
-        "perturbations": attack_model.structure_perturbations,
+        "perturbations": perturbations,
         "attacked_edge_index": attacked_edge_index,
     }
+
+
+def run_purification_aware_nettack_on_node(
+    target_model,
+    data,
+    surrogate,
+    adj,
+    features,
+    labels,
+    target_node,
+    purification_thresholds,
+    purification_operator="jaccard",
+    max_perturbations=5,
+    require_all_thresholds=True,
+    device="cpu",
+):
+    thresholds = tuple(sorted(float(threshold) for threshold in purification_thresholds))
+    if not thresholds:
+        raise ValueError("purification_thresholds must be non-empty")
+
+    clean_pred, _ = predict_node(target_model, data, data.edge_index, target_node)
+    true_label = int(data.y[target_node].item())
+    best_result = None
+    best_score = None
+
+    for n_perturbations in range(1, int(max_perturbations) + 1):
+        attacked_edge_index, attacked_pred, perturbations = _run_single_nettack_attack(
+            target_model=target_model,
+            data=data,
+            surrogate=surrogate,
+            adj=adj,
+            features=features,
+            labels=labels,
+            target_node=target_node,
+            n_perturbations=n_perturbations,
+            device=device,
+        )
+
+        purified_predictions = []
+        target_retentions = []
+        successful_thresholds = []
+        for threshold in thresholds:
+            purified_edge_index, purification_stats = purify_target_node_edges(
+                x=data.x,
+                edge_index=attacked_edge_index,
+                target_node=target_node,
+                threshold=threshold,
+                operator=purification_operator,
+            )
+            purified_pred, _ = predict_node(
+                target_model,
+                data,
+                purified_edge_index,
+                target_node,
+            )
+            purified_predictions.append(int(purified_pred))
+            target_retentions.append(float(purification_stats["target_edge_retention"]))
+            successful_thresholds.append(int(purified_pred) != true_label)
+
+        success_count = int(sum(successful_thresholds))
+        success = success_count == len(thresholds) if require_all_thresholds else success_count > 0
+        score = (int(success), success_count, int(attacked_pred != true_label), -n_perturbations)
+        if best_score is None or score > best_score:
+            best_score = score
+            best_result = {
+                "target_node": int(target_node),
+                "true_label": int(true_label),
+                "clean_pred": int(clean_pred),
+                "attacked_pred": int(attacked_pred),
+                "success": int(success),
+                "baseline_success": int(attacked_pred != true_label),
+                "adaptive_success_count": int(success_count),
+                "adaptive_success_rate": (success_count / len(thresholds)) if thresholds else 0.0,
+                "adaptive_require_all_thresholds": int(require_all_thresholds),
+                "adaptive_thresholds": ";".join(f"{threshold:.3f}" for threshold in thresholds),
+                "adaptive_purified_predictions": ";".join(str(prediction) for prediction in purified_predictions),
+                "adaptive_mean_target_edge_retention": (
+                    sum(target_retentions) / len(target_retentions) if target_retentions else 0.0
+                ),
+                "perturbation_budget": int(n_perturbations),
+                "perturbations": perturbations,
+                "attacked_edge_index": attacked_edge_index,
+            }
+
+    if best_result is None:
+        raise RuntimeError("purification-aware Nettack did not evaluate any perturbation budgets")
+    return best_result
