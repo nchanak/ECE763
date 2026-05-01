@@ -5,6 +5,8 @@ import csv
 from pathlib import Path
 from typing import Any
 
+import matplotlib.pyplot as plt
+
 
 SUMMARY_FILENAMES = {
     "fixed": "winner_only_fixed_config_summary.csv",
@@ -40,6 +42,10 @@ def _group_rows(rows: list[dict[str, str]], keys: tuple[str, ...]) -> dict[tuple
     return grouped
 
 
+def _combo_label(row: dict[str, str]) -> str:
+    return f"{row['dataset']} / {row['model_architecture']} / {row['attack_mode']}"
+
+
 def _pick_best_fixed_row(rows: list[dict[str, str]]) -> dict[str, str]:
     return max(
         rows,
@@ -66,6 +72,14 @@ def _pick_best_row(rows: list[dict[str, str]]) -> dict[str, str]:
     )
 
 
+def _best_rows_by_combo(
+    rows: list[dict[str, str]],
+    picker,
+) -> list[dict[str, str]]:
+    grouped = _group_rows(rows, ("dataset", "model_architecture", "attack_mode"))
+    return [picker(grouped[key]) for key in sorted(grouped)]
+
+
 def _format_pct(value: float) -> str:
     return f"{value * 100:.1f}%"
 
@@ -76,6 +90,115 @@ def _format_float(value: float) -> str:
 
 def _threshold_label(row: dict[str, str]) -> str:
     return f"thr={row['threshold']}"
+
+
+def _save_figure(output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=200)
+    plt.close()
+
+
+def _plot_best_fixed_overview(output_path: Path, fixed_rows: list[dict[str, str]]) -> None:
+    best_rows = _best_rows_by_combo(fixed_rows, _pick_best_fixed_row)
+    if not best_rows:
+        return
+
+    labels = [_combo_label(row) for row in best_rows]
+    positive = [_to_float(row, "positive_certified_fraction_mean") * 100.0 for row in best_rows]
+    correct = [_to_float(row, "correct_fraction_mean") * 100.0 for row in best_rows]
+
+    positions = list(range(len(labels)))
+    bar_width = 0.38
+
+    plt.figure(figsize=(10, 4.8 + 0.35 * len(labels)))
+    plt.barh([pos - bar_width / 2 for pos in positions], positive, height=bar_width, label="Positive certification")
+    plt.barh([pos + bar_width / 2 for pos in positions], correct, height=bar_width, label="Correctness")
+    plt.yticks(positions, labels)
+    plt.xlabel("Percent")
+    plt.title("Winner-Only Best Fixed Configuration by Combination")
+    plt.grid(axis="x", alpha=0.3)
+    plt.legend()
+    _save_figure(output_path)
+
+
+def _plot_selector_oracle_overview(
+    output_path: Path,
+    selector_rows: list[dict[str, str]],
+    oracle_rows: list[dict[str, str]],
+) -> None:
+    best_selector = _best_rows_by_combo(selector_rows, _pick_best_row)
+    best_oracle = {
+        (row["dataset"], row["model_architecture"], row["attack_mode"]): row
+        for row in _best_rows_by_combo(oracle_rows, _pick_best_row)
+    }
+    if not best_selector:
+        return
+
+    labels = [_combo_label(row) for row in best_selector]
+    selector_positive = [_to_float(row, "positive_certified_fraction_mean") * 100.0 for row in best_selector]
+    oracle_positive = [
+        _to_float(best_oracle[(row["dataset"], row["model_architecture"], row["attack_mode"])], "positive_certified_fraction_mean")
+        * 100.0
+        for row in best_selector
+    ]
+
+    positions = list(range(len(labels)))
+    bar_width = 0.38
+
+    plt.figure(figsize=(10, 4.8 + 0.35 * len(labels)))
+    plt.barh([pos - bar_width / 2 for pos in positions], selector_positive, height=bar_width, label="Selector")
+    plt.barh([pos + bar_width / 2 for pos in positions], oracle_positive, height=bar_width, label="Oracle")
+    plt.yticks(positions, labels)
+    plt.xlabel("Positive certified fraction (%)")
+    plt.title("Selector vs Oracle Certification Envelope")
+    plt.grid(axis="x", alpha=0.3)
+    plt.legend()
+    _save_figure(output_path)
+
+
+def _plot_target_pool_overview(output_path: Path, target_pool_rows: list[dict[str, str]]) -> None:
+    if not target_pool_rows:
+        return
+
+    rows = sorted(
+        target_pool_rows,
+        key=lambda row: (
+            row["dataset"],
+            row["model_architecture"],
+            row["attack_mode"],
+            row["model_variant"],
+        ),
+    )
+    labels = [f"{_combo_label(row)} / {row['model_variant']}" for row in rows]
+    evaluated = [_to_float(row, "evaluated_targets_mean") for row in rows]
+    goals = [_to_float(row, "target_count_goal") for row in rows]
+
+    positions = list(range(len(labels)))
+
+    plt.figure(figsize=(11, 5.0 + 0.25 * len(labels)))
+    plt.barh(positions, evaluated, height=0.6, label="Evaluated targets")
+    for pos, goal in zip(positions, goals):
+        plt.plot([goal, goal], [pos - 0.32, pos + 0.32], color="black", linewidth=1.4)
+    plt.yticks(positions, labels)
+    plt.xlabel("Targets")
+    plt.title("Winner-Only Target Pool Coverage")
+    plt.grid(axis="x", alpha=0.3)
+    plt.legend(["Goal", "Evaluated targets"])
+    _save_figure(output_path)
+
+
+def generate_figures(output_dir: Path, inputs: dict[str, list[dict[str, str]]], figures_dir: Path) -> list[Path]:
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    saved_paths = [
+        figures_dir / "winner_only_best_fixed_overview.png",
+        figures_dir / "winner_only_selector_oracle_overview.png",
+        figures_dir / "winner_only_target_pool_coverage.png",
+    ]
+    _plot_best_fixed_overview(saved_paths[0], inputs["fixed"])
+    _plot_selector_oracle_overview(saved_paths[1], inputs["selector"], inputs["oracle"])
+    _plot_target_pool_overview(saved_paths[2], inputs["target_pool"])
+    return saved_paths
 
 
 def _load_inputs(output_dir: Path) -> dict[str, list[dict[str, str]]]:
@@ -380,6 +503,17 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Path to write the markdown summary. Defaults to <output-dir>/winner_only_benchmark_suite_summary.md.",
     )
+    parser.add_argument(
+        "--figures-dir",
+        type=Path,
+        default=None,
+        help="Directory to write summary figures. Defaults to <output-dir>/figures.",
+    )
+    parser.add_argument(
+        "--skip-figures",
+        action="store_true",
+        help="Only write markdown summary and skip figure generation.",
+    )
     return parser.parse_args()
 
 
@@ -387,9 +521,17 @@ def main() -> None:
     args = parse_args()
     output_dir = args.output_dir.resolve()
     summary_path = args.summary_path.resolve() if args.summary_path else output_dir / "winner_only_benchmark_suite_summary.md"
+    inputs = _load_inputs(output_dir)
     markdown = build_markdown(output_dir)
     summary_path.write_text(markdown, encoding="utf-8")
     print(f"Saved summary to {summary_path}")
+
+    if not args.skip_figures:
+        figures_dir = args.figures_dir.resolve() if args.figures_dir else output_dir / "figures"
+        saved_paths = generate_figures(output_dir, inputs, figures_dir)
+        print("Saved figures:")
+        for path in saved_paths:
+            print(f"- {path}")
 
 
 if __name__ == "__main__":

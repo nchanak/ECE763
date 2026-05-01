@@ -1,0 +1,4 @@
+model_variant,attack_variant,attempted_nodes,successful_attacks,evaluated_targets,target_count_goal,target_pool_mode
+clean-training,clean-training,12,11,11,12,successful-attacks
+matched-sparse-noisy-training,matched-sparse-noisy-training,12,12,12,12,successful-attacks
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,12,11,11,12,successful-attacks

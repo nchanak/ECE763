@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="530" viewBox="0 0 1080 530">
+<rect width="100%" height="100%" fill="white"/>
+<text x="540.0" y="36" text-anchor="middle" font-family="Arial" font-size="24" font-weight="700">Certified Accuracy Curves: Clean GCN</text>
+<text x="300.0" y="74" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700">Symmetric add/delete radius</text>
+<line x1="90" y1="96" x2="90" y2="401" stroke="#111827" stroke-width="1.4"/>
+<line x1="90" y1="401" x2="510" y2="401" stroke="#111827" stroke-width="1.4"/>
+<line x1="90" y1="401" x2="510" y2="401" stroke="#e5e7eb"/>
+<text x="78" y="406" text-anchor="end" font-family="Arial" font-size="13" fill="#374151">0</text>
+<line x1="90" y1="324.75" x2="510" y2="324.75" stroke="#e5e7eb"/>
+<text x="78" y="329.75" text-anchor="end" font-family="Arial" font-size="13" fill="#374151">0.25</text>
+<line x1="90" y1="248.5" x2="510" y2="248.5" stroke="#e5e7eb"/>
+<text x="78" y="253.5" text-anchor="end" font-family="Arial" font-size="13" fill="#374151">0.5</text>
+<line x1="90" y1="172.25" x2="510" y2="172.25" stroke="#e5e7eb"/>
+<text x="78" y="177.25" text-anchor="end" font-family="Arial" font-size="13" fill="#374151">0.75</text>
+<line x1="90" y1="96.0" x2="510" y2="96.0" stroke="#e5e7eb"/>
+<text x="78" y="101.0" text-anchor="end" font-family="Arial" font-size="13" fill="#374151">1</text>
+<line x1="90.0" y1="96" x2="90.0" y2="401" stroke="#f3f4f6"/>
+<text x="90.0" y="425" text-anchor="middle" font-family="Arial" font-size="13" fill="#374151">0</text>
+<line x1="174.0" y1="96" x2="174.0" y2="401" stroke="#f3f4f6"/>
+<text x="174.0" y="425" text-anchor="middle" font-family="Arial" font-size="13" fill="#374151">1</text>
+<line x1="258.0" y1="96" x2="258.0" y2="401" stroke="#f3f4f6"/>
+<text x="258.0" y="425" text-anchor="middle" font-family="Arial" font-size="13" fill="#374151">2</text>
+<line x1="342.0" y1="96" x2="342.0" y2="401" stroke="#f3f4f6"/>
+<text x="342.0" y="425" text-anchor="middle" font-family="Arial" font-size="13" fill="#374151">3</text>
+<line x1="426.0" y1="96" x2="426.0" y2="401" stroke="#f3f4f6"/>
+<text x="426.0" y="425" text-anchor="middle" font-family="Arial" font-size="13" fill="#374151">4</text>
+<line x1="510.0" y1="96" x2="510.0" y2="401" stroke="#f3f4f6"/>
+<text x="510.0" y="425" text-anchor="middle" font-family="Arial" font-size="13" fill="#374151">5</text>
+<path d="M 90.0 350.2 L 174.0 388.3 L 258.0 401.0 L 342.0 401.0 L 426.0 401.0 L 510.0 401.0" fill="none" stroke="#2563eb" stroke-width="3"/>
+<circle cx="90.0" cy="350.2" r="4.8" fill="#2563eb"/>
+<circle cx="174.0" cy="388.3" r="4.8" fill="#2563eb"/>
+<circle cx="258.0" cy="401.0" r="4.8" fill="#2563eb"/>
+<circle cx="342.0" cy="401.0" r="4.8" fill="#2563eb"/>
+<circle cx="426.0" cy="401.0" r="4.8" fill="#2563eb"/>
+<circle cx="510.0" cy="401.0" r="4.8" fill="#2563eb"/>
+<path d="M 90.0 362.9 L 174.0 362.9 L 258.0 401.0 L 342.0 401.0 L 426.0 401.0 L 510.0 401.0" fill="none" stroke="#f97316" stroke-width="3"/>
+<circle cx="90.0" cy="362.9" r="4.8" fill="#f97316"/>
+<circle cx="174.0" cy="362.9" r="4.8" fill="#f97316"/>
+<circle cx="258.0" cy="401.0" r="4.8" fill="#f97316"/>
+<circle cx="342.0" cy="401.0" r="4.8" fill="#f97316"/>
+<circle cx="426.0" cy="401.0" r="4.8" fill="#f97316"/>
+<circle cx="510.0" cy="401.0" r="4.8" fill="#f97316"/>
+<path d="M 90.0 362.9 L 174.0 362.9 L 258.0 362.9 L 342.0 401.0 L 426.0 401.0 L 510.0 401.0" fill="none" stroke="#16a34a" stroke-width="3"/>
+<circle cx="90.0" cy="362.9" r="4.8" fill="#16a34a"/>
+<circle cx="174.0" cy="362.9" r="4.8" fill="#16a34a"/>
+<circle cx="258.0" cy="362.9" r="4.8" fill="#16a34a"/>
+<circle cx="342.0" cy="401.0" r="4.8" fill="#16a34a"/>
+<circle cx="426.0" cy="401.0" r="4.8" fill="#16a34a"/>
+<circle cx="510.0" cy="401.0" r="4.8" fill="#16a34a"/>
+<path d="M 90.0 362.9 L 174.0 362.9 L 258.0 362.9 L 342.0 362.9 L 426.0 362.9 L 510.0 401.0" fill="none" stroke="#dc2626" stroke-width="3"/>
+<circle cx="90.0" cy="362.9" r="4.8" fill="#dc2626"/>
+<circle cx="174.0" cy="362.9" r="4.8" fill="#dc2626"/>
+<circle cx="258.0" cy="362.9" r="4.8" fill="#dc2626"/>
+<circle cx="342.0" cy="362.9" r="4.8" fill="#dc2626"/>
+<circle cx="426.0" cy="362.9" r="4.8" fill="#dc2626"/>
+<circle cx="510.0" cy="401.0" r="4.8" fill="#dc2626"/>
+<line x1="108" y1="114" x2="134" y2="114" stroke="#2563eb" stroke-width="3"/>
+<circle cx="121" cy="114" r="4" fill="#2563eb"/>
+<text x="142" y="119" font-family="Arial" font-size="13" fill="#111827">p_flip=0.02</text>
+<line x1="108" y1="136" x2="134" y2="136" stroke="#f97316" stroke-width="3"/>
+<circle cx="121" cy="136" r="4" fill="#f97316"/>
+<text x="142" y="141" font-family="Arial" font-size="13" fill="#111827">p_flip=0.05</text>
+<line x1="108" y1="158" x2="134" y2="158" stroke="#16a34a" stroke-width="3"/>
+<circle cx="121" cy="158" r="4" fill="#16a34a"/>
+<text x="142" y="163" font-family="Arial" font-size="13" fill="#111827">p_flip=0.1</text>
+<line x1="108" y1="180" x2="134" y2="180" stroke="#dc2626" stroke-width="3"/>
+<circle cx="121" cy="180" r="4" fill="#dc2626"/>
+<text x="142" y="185" font-family="Arial" font-size="13" fill="#111827">p_flip=0.2</text>
+<text x="300.0" y="496" text-anchor="middle" font-family="Arial" font-size="15">Certified perturbation size</text>
+<text x="800.0" y="74" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700">Sparse asymmetric deletion-only radius</text>
+<line x1="590" y1="96" x2="590" y2="401" stroke="#111827" stroke-width="1.4"/>
+<line x1="590" y1="401" x2="1010" y2="401" stroke="#111827" stroke-width="1.4"/>
+<line x1="590" y1="401" x2="1010" y2="401" stroke="#e5e7eb"/>
+<line x1="590" y1="324.75" x2="1010" y2="324.75" stroke="#e5e7eb"/>
+<line x1="590" y1="248.5" x2="1010" y2="248.5" stroke="#e5e7eb"/>
+<line x1="590" y1="172.25" x2="1010" y2="172.25" stroke="#e5e7eb"/>
+<line x1="590" y1="96.0" x2="1010" y2="96.0" stroke="#e5e7eb"/>
+<line x1="590.0" y1="96" x2="590.0" y2="401" stroke="#f3f4f6"/>
+<text x="590.0" y="425" text-anchor="middle" font-family="Arial" font-size="13" fill="#374151">0</text>
+<line x1="674.0" y1="96" x2="674.0" y2="401" stroke="#f3f4f6"/>
+<text x="674.0" y="425" text-anchor="middle" font-family="Arial" font-size="13" fill="#374151">1</text>
+<line x1="758.0" y1="96" x2="758.0" y2="401" stroke="#f3f4f6"/>
+<text x="758.0" y="425" text-anchor="middle" font-family="Arial" font-size="13" fill="#374151">2</text>
+<line x1="842.0" y1="96" x2="842.0" y2="401" stroke="#f3f4f6"/>
+<text x="842.0" y="425" text-anchor="middle" font-family="Arial" font-size="13" fill="#374151">3</text>
+<line x1="926.0" y1="96" x2="926.0" y2="401" stroke="#f3f4f6"/>
+<text x="926.0" y="425" text-anchor="middle" font-family="Arial" font-size="13" fill="#374151">4</text>
+<line x1="1010.0" y1="96" x2="1010.0" y2="401" stroke="#f3f4f6"/>
+<text x="1010.0" y="425" text-anchor="middle" font-family="Arial" font-size="13" fill="#374151">5</text>
+<path d="M 590.0 96.0 L 674.0 197.7 L 758.0 401.0 L 842.0 401.0 L 926.0 401.0 L 1010.0 401.0" fill="none" stroke="#2563eb" stroke-width="3"/>
+<circle cx="590.0" cy="96.0" r="4.8" fill="#2563eb"/>
+<circle cx="674.0" cy="197.7" r="4.8" fill="#2563eb"/>
+<circle cx="758.0" cy="401.0" r="4.8" fill="#2563eb"/>
+<circle cx="842.0" cy="401.0" r="4.8" fill="#2563eb"/>
+<circle cx="926.0" cy="401.0" r="4.8" fill="#2563eb"/>
+<circle cx="1010.0" cy="401.0" r="4.8" fill="#2563eb"/>
+<path d="M 590.0 96.0 L 674.0 197.7 L 758.0 401.0 L 842.0 401.0 L 926.0 401.0 L 1010.0 401.0" fill="none" stroke="#f97316" stroke-width="3"/>
+<circle cx="590.0" cy="96.0" r="4.8" fill="#f97316"/>
+<circle cx="674.0" cy="197.7" r="4.8" fill="#f97316"/>
+<circle cx="758.0" cy="401.0" r="4.8" fill="#f97316"/>
+<circle cx="842.0" cy="401.0" r="4.8" fill="#f97316"/>
+<circle cx="926.0" cy="401.0" r="4.8" fill="#f97316"/>
+<circle cx="1010.0" cy="401.0" r="4.8" fill="#f97316"/>
+<path d="M 590.0 96.0 L 674.0 197.7 L 758.0 350.2 L 842.0 401.0 L 926.0 401.0 L 1010.0 401.0" fill="none" stroke="#16a34a" stroke-width="3"/>
+<circle cx="590.0" cy="96.0" r="4.8" fill="#16a34a"/>
+<circle cx="674.0" cy="197.7" r="4.8" fill="#16a34a"/>
+<circle cx="758.0" cy="350.2" r="4.8" fill="#16a34a"/>
+<circle cx="842.0" cy="401.0" r="4.8" fill="#16a34a"/>
+<circle cx="926.0" cy="401.0" r="4.8" fill="#16a34a"/>
+<circle cx="1010.0" cy="401.0" r="4.8" fill="#16a34a"/>
+<line x1="608" y1="114" x2="634" y2="114" stroke="#2563eb" stroke-width="3"/>
+<circle cx="621" cy="114" r="4" fill="#2563eb"/>
+<text x="642" y="119" font-family="Arial" font-size="13" fill="#111827">p_del=0.02</text>
+<line x1="608" y1="136" x2="634" y2="136" stroke="#f97316" stroke-width="3"/>
+<circle cx="621" cy="136" r="4" fill="#f97316"/>
+<text x="642" y="141" font-family="Arial" font-size="13" fill="#111827">p_del=0.05</text>
+<line x1="608" y1="158" x2="634" y2="158" stroke="#16a34a" stroke-width="3"/>
+<circle cx="621" cy="158" r="4" fill="#16a34a"/>
+<text x="642" y="163" font-family="Arial" font-size="13" fill="#111827">p_del=0.1</text>
+<text x="800.0" y="496" text-anchor="middle" font-family="Arial" font-size="15">Certified perturbation size</text>
+<text transform="translate(28 248.5) rotate(-90)" text-anchor="middle" font-family="Arial" font-size="16">Certified accuracy</text>
+<text x="540.0" y="520" text-anchor="middle" font-family="Arial" font-size="12" fill="#4b5563">Omitted add/delete total panel because positive sparse asymmetric certificates are deletion-only in this run.</text>
+</svg>

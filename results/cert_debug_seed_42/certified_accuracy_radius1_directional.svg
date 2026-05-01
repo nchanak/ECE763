@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="590" viewBox="0 0 1180 590">
+<rect width="100%" height="100%" fill="white"/>
+<text x="590.0" y="36" text-anchor="middle" font-family="Arial" font-size="25" font-weight="700">Radius-1 Certified Accuracy by Certificate Type</text>
+<line x1="90" y1="432.0" x2="1070" y2="432.0" stroke="#e5e7eb"/>
+<text x="78" y="437.0" text-anchor="end" font-family="Arial" font-size="13" fill="#374151">0</text>
+<line x1="90" y1="344.5" x2="1070" y2="344.5" stroke="#e5e7eb"/>
+<text x="78" y="349.5" text-anchor="end" font-family="Arial" font-size="13" fill="#374151">0.25</text>
+<line x1="90" y1="257.0" x2="1070" y2="257.0" stroke="#e5e7eb"/>
+<text x="78" y="262.0" text-anchor="end" font-family="Arial" font-size="13" fill="#374151">0.5</text>
+<line x1="90" y1="169.5" x2="1070" y2="169.5" stroke="#e5e7eb"/>
+<text x="78" y="174.5" text-anchor="end" font-family="Arial" font-size="13" fill="#374151">0.75</text>
+<line x1="90" y1="82.0" x2="1070" y2="82.0" stroke="#e5e7eb"/>
+<text x="78" y="87.0" text-anchor="end" font-family="Arial" font-size="13" fill="#374151">1</text>
+<line x1="90" y1="82" x2="90" y2="432" stroke="#111827"/>
+<line x1="90" y1="432" x2="1070" y2="432" stroke="#111827"/>
+<text x="335.0" y="530" text-anchor="middle" font-family="Arial" font-size="17" font-weight="700">Clean model</text>
+<rect x="129.7" y="417.4" width="24" height="14.6" fill="#2563eb"/>
+<text x="141.7" y="412.4" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.04</text>
+<rect x="157.7" y="388.2" width="24" height="43.8" fill="#f97316"/>
+<text x="169.7" y="383.2" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.12</text>
+<rect x="185.7" y="388.2" width="24" height="43.8" fill="#16a34a"/>
+<text x="197.7" y="383.2" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.12</text>
+<rect x="213.7" y="388.2" width="24" height="43.8" fill="#dc2626"/>
+<text x="225.7" y="383.2" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.12</text>
+<text x="171.7" y="458" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">Symmetric</text>
+<text x="171.7" y="473" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">add/delete</text>
+<rect x="293.0" y="198.7" width="24" height="233.3" fill="#2563eb"/>
+<text x="305.0" y="193.7" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.67</text>
+<rect x="321.0" y="198.7" width="24" height="233.3" fill="#f97316"/>
+<text x="333.0" y="193.7" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.67</text>
+<rect x="349.0" y="198.7" width="24" height="233.3" fill="#16a34a"/>
+<text x="361.0" y="193.7" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.67</text>
+<text x="335.0" y="458" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">Asymmetric</text>
+<text x="335.0" y="473" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">deletion-</text>
+<text x="335.0" y="488" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">only</text>
+<rect x="456.3" y="432.0" width="24" height="0.0" fill="#2563eb"/>
+<rect x="484.3" y="432.0" width="24" height="0.0" fill="#f97316"/>
+<rect x="512.3" y="432.0" width="24" height="0.0" fill="#16a34a"/>
+<text x="498.3" y="458" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">Asymmetric</text>
+<text x="498.3" y="473" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">addition-</text>
+<text x="498.3" y="488" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">only</text>
+<line x1="580.0" y1="82" x2="580.0" y2="500" stroke="#d1d5db" stroke-dasharray="4 4"/>
+<text x="825.0" y="530" text-anchor="middle" font-family="Arial" font-size="17" font-weight="700">Robust model</text>
+<rect x="619.7" y="402.8" width="24" height="29.2" fill="#2563eb"/>
+<text x="631.7" y="397.8" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.08</text>
+<rect x="647.7" y="329.9" width="24" height="102.1" fill="#f97316"/>
+<text x="659.7" y="324.9" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.29</text>
+<rect x="675.7" y="315.3" width="24" height="116.7" fill="#16a34a"/>
+<text x="687.7" y="310.3" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.33</text>
+<rect x="703.7" y="315.3" width="24" height="116.7" fill="#dc2626"/>
+<text x="715.7" y="310.3" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.33</text>
+<text x="661.7" y="458" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">Symmetric</text>
+<text x="661.7" y="473" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">add/delete</text>
+<rect x="783.0" y="227.8" width="24" height="204.2" fill="#2563eb"/>
+<text x="795.0" y="222.8" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.58</text>
+<rect x="811.0" y="198.7" width="24" height="233.3" fill="#f97316"/>
+<text x="823.0" y="193.7" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.67</text>
+<rect x="839.0" y="198.7" width="24" height="233.3" fill="#16a34a"/>
+<text x="851.0" y="193.7" text-anchor="middle" font-family="Arial" font-size="10" fill="#374151">0.67</text>
+<text x="825.0" y="458" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">Asymmetric</text>
+<text x="825.0" y="473" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">deletion-</text>
+<text x="825.0" y="488" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">only</text>
+<rect x="946.3" y="432.0" width="24" height="0.0" fill="#2563eb"/>
+<rect x="974.3" y="432.0" width="24" height="0.0" fill="#f97316"/>
+<rect x="1002.3" y="432.0" width="24" height="0.0" fill="#16a34a"/>
+<text x="988.3" y="458" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">Asymmetric</text>
+<text x="988.3" y="473" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">addition-</text>
+<text x="988.3" y="488" text-anchor="middle" font-family="Arial" font-size="12.5" fill="#111827">only</text>
+<text x="265" y="549" font-family="Arial" font-size="14" font-weight="700">Noise:</text>
+<rect x="335" y="535" width="18" height="18" fill="#2563eb"/>
+<text x="361" y="549" font-family="Arial" font-size="14" fill="#111827">0.02</text>
+<rect x="460" y="535" width="18" height="18" fill="#f97316"/>
+<text x="486" y="549" font-family="Arial" font-size="14" fill="#111827">0.05</text>
+<rect x="585" y="535" width="18" height="18" fill="#16a34a"/>
+<text x="611" y="549" font-family="Arial" font-size="14" fill="#111827">0.1</text>
+<rect x="710" y="535" width="18" height="18" fill="#dc2626"/>
+<text x="736" y="549" font-family="Arial" font-size="14" fill="#111827">0.2</text>
+<text transform="translate(28 257.0) rotate(-90)" text-anchor="middle" font-family="Arial" font-size="16">Certified accuracy at radius &gt;= 1</text>
+<text x="590.0" y="572" text-anchor="middle" font-family="Arial" font-size="12" fill="#4b5563">Symmetric edge-flip allows additions and deletions; sparse asymmetric certificates are split by perturbation direction.</text>
+</svg>

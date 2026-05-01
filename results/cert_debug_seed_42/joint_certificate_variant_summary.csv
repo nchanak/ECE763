@@ -1,0 +1,15 @@
+subset_name,variant,certificate_family,p_flip,evaluated_nodes,correct_fraction,positive_certified_accuracy,certified_fraction_on_correct,mean_certified_radius_on_correct,p_delete,p_add,max_additions,positive_delete_certified_accuracy,positive_add_certified_accuracy,delete_certified_fraction_on_correct,add_certified_fraction_on_correct,mean_delete_radius_on_correct,mean_add_radius_on_correct
+jointly-correct,clean-training,symmetric,0.02,24,0.125,0.041666666666666664,0.3333333333333333,0.3333333333333333,,,,,,,,,
+jointly-correct,clean-training,symmetric,0.05,24,0.08333333333333333,0.08333333333333333,1.0,1.0,,,,,,,,,
+jointly-correct,clean-training,symmetric,0.1,24,0.08333333333333333,0.08333333333333333,1.0,2.0,,,,,,,,,
+jointly-correct,clean-training,symmetric,0.2,24,0.08333333333333333,0.08333333333333333,1.0,4.0,,,,,,,,,
+jointly-correct,clean-training,sparse,,24,1.0,0.625,0.625,0.625,0.02,1e-05,96,0.625,0.0,0.625,0.0,0.625,0.0
+jointly-correct,clean-training,sparse,,24,1.0,0.6666666666666666,0.6666666666666666,0.6666666666666666,0.05,2e-05,160,0.6666666666666666,0.0,0.6666666666666666,0.0,0.6666666666666666,0.0
+jointly-correct,clean-training,sparse,,24,1.0,0.6666666666666666,0.6666666666666666,0.875,0.1,5e-05,256,0.6666666666666666,0.0,0.6666666666666666,0.0,0.875,0.0
+jointly-correct,matched-sparse-noisy-training,symmetric,0.02,24,0.2916666666666667,0.0,0.0,0.0,,,,,,,,,
+jointly-correct,matched-sparse-noisy-training,symmetric,0.05,24,0.25,0.20833333333333334,0.8333333333333334,0.8333333333333334,,,,,,,,,
+jointly-correct,matched-sparse-noisy-training,symmetric,0.1,24,0.25,0.25,1.0,1.8333333333333333,,,,,,,,,
+jointly-correct,matched-sparse-noisy-training,symmetric,0.2,24,0.25,0.25,1.0,4.0,,,,,,,,,
+jointly-correct,matched-sparse-noisy-training,sparse,,24,1.0,0.6666666666666666,0.6666666666666666,0.6666666666666666,0.02,1e-05,96,0.6666666666666666,0.0,0.6666666666666666,0.0,0.6666666666666666,0.0
+jointly-correct,matched-sparse-noisy-training,sparse,,24,1.0,0.75,0.75,0.75,0.05,2e-05,160,0.75,0.0,0.75,0.0,0.75,0.0
+jointly-correct,matched-sparse-noisy-training,sparse,,24,1.0,0.75,0.75,0.9166666666666666,0.1,5e-05,256,0.75,0.0,0.75,0.0,0.9166666666666666,0.0
