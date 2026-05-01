@@ -43,8 +43,16 @@ python main.py --seeds 42,84,99 --output-dir results/multiseed
 - Sparse sweep override example:
 
 ```bash
-python main.py --sparse-flip-sweep "0.01:0.000005:64;0.02:0.000010:96;0.05:0.000020:160"
+python main.py --sparse-flip-sweep "0.02:0.000010:96;0.05:0.000020:160;0.10:0.000050:256"
 ```
+
+- Certificate-focused rerun with higher sampling:
+
+```bash
+python main.py --seed 42 --output-dir results/cert_debug_seed_42 --certified-samples 2000 --local-certificate-samples 2000 --certificate-node-count 24
+```
+
+- Sparse asymmetric certificate curves now track add/delete total radius and deletion-only radius separately in `sparse_asymmetric_certified_accuracy_curve.csv`. The combined reporting table `certificate_radius_family_curve.csv` includes symmetric, add/delete-total, and deletion-only curves with `model_variant`, `certificate_family`, and `radius_type` columns.
 
 - When multiple outer seeds are requested, [main.py](main.py) writes a top-level summary across those runs. The heavier purified five-seed attack-aligned summary remains the dedicated single-run artifact family listed above.
 

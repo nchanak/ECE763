@@ -1,0 +1,13 @@
+model_variant,attack_variant,threshold,target_node,true_label,plain_pred,plain_is_correct,smoothed_pred,smoothed_is_correct,reported_certified_radius,reported_asymmetric_total_radius,reported_asymmetric_delete_budget,reported_asymmetric_add_budget,reported_runner_up_asymmetric_total_radius,pA_lower,target_edge_retention
+clean-training,clean-training,0.0,2488,1,0,0,0,0,0,0,0,0,0,0.9939894201208139,1.0
+clean-training,clean-training,0.01,2488,1,1,1,1,1,0,0,0,0,0,0.9738266325611364,0.0
+clean-training,clean-training,0.02,2488,1,1,1,1,1,0,0,0,0,0,0.9757636551491594,0.0
+clean-training,clean-training,0.05,2488,1,1,1,1,1,0,0,0,0,0,0.9738266325611364,0.0
+matched-sparse-noisy-training,matched-sparse-noisy-training,0.0,2149,3,0,0,0,0,0,0,0,0,0,0.9950118925598964,1.0
+matched-sparse-noisy-training,matched-sparse-noisy-training,0.01,2149,3,0,0,0,0,0,0,0,0,0,0.9435233591586067,0.0
+matched-sparse-noisy-training,matched-sparse-noisy-training,0.02,2149,3,0,0,0,0,0,0,0,0,0,0.9470362627503814,0.0
+matched-sparse-noisy-training,matched-sparse-noisy-training,0.05,2149,3,0,0,0,0,0,0,0,0,0,0.9452769698977679,0.0
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,0.0,2488,1,0,0,0,0,0,0,0,0,0,0.989708182119733,1.0
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,0.01,2488,1,1,1,1,1,0,0,0,0,0,0.9731859726320082,0.0
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,0.02,2488,1,1,1,1,1,0,0,0,0,0,0.9770688798289408,0.0
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,0.05,2488,1,1,1,1,1,0,0,0,0,0,0.9744697177389934,0.0

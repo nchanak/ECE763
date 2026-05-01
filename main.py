@@ -42,11 +42,11 @@ from src.train import (
 GLOBAL_ATTACK_BUDGETS = [5, 10, 20, 50]
 EDGE_DROP_SWEEP = [0.05, 0.1, 0.2, 0.3, 0.4]
 SPARSE_FLIP_SWEEP = [
-    {"p_delete": 0.01, "p_add": 0.000005, "max_additions": 64},
     {"p_delete": 0.02, "p_add": 0.000010, "max_additions": 96},
     {"p_delete": 0.05, "p_add": 0.000020, "max_additions": 160},
+    {"p_delete": 0.10, "p_add": 0.000050, "max_additions": 256},
 ]
-CERTIFIED_ACCURACY_SWEEP = [0.01, 0.02, 0.05, 0.10]
+CERTIFIED_ACCURACY_SWEEP = [0.02, 0.05, 0.10, 0.20]
 LOCAL_CERTIFICATE_SWEEP = [0.01, 0.02, 0.05, 0.10]
 SPARSE_CERTIFICATE_SWEEP = SPARSE_FLIP_SWEEP
 PURIFICATION_SWEEP = [0.0, 0.01, 0.02, 0.05]
@@ -84,10 +84,10 @@ PURIFIED_CERTIFICATE_CANDIDATE_SWEEP = [
 ]
 PURIFIED_CERTIFICATE_TARGET_COUNT = 12
 PURIFICATION_ATTACK_BUDGET = 50
-CERTIFIED_ACCURACY_SAMPLES = 100
+CERTIFIED_ACCURACY_SAMPLES = 2000
 CERTIFIED_ACCURACY_NODE_COUNT = 24
 CONFIDENCE_Z = 1.96
-LOCAL_CERTIFICATE_SAMPLES = 400
+LOCAL_CERTIFICATE_SAMPLES = 2000
 CERTIFICATE_MAX_RADIUS = 5
 ASYMMETRIC_CERTIFICATE_MAX_DELETE = 5
 ASYMMETRIC_CERTIFICATE_MAX_ADD = 5
@@ -356,6 +356,13 @@ def _summarize_certificate_rows(rows, config_keys, group_keys):
         correct_rows = [row for row in group_rows if row["is_correct"]]
         non_abstained_rows = [row for row in group_rows if not row["abstained"]]
         positive_rows = [row for row in correct_rows if row["reported_certified_radius"] > 0]
+        has_asymmetric_columns = any("reported_asymmetric_delete_budget" in row for row in group_rows)
+        positive_delete_rows = [
+            row for row in correct_rows if int(row.get("reported_asymmetric_delete_budget", 0) or 0) > 0
+        ]
+        positive_add_rows = [
+            row for row in correct_rows if int(row.get("reported_asymmetric_add_budget", 0) or 0) > 0
+        ]
 
         summary_row.update(
             {
@@ -380,10 +387,58 @@ def _summarize_certificate_rows(rows, config_keys, group_keys):
                 ),
             }
         )
+        if has_asymmetric_columns:
+            summary_row.update(
+                {
+                    "positive_delete_certified_accuracy": len(positive_delete_rows) / total if total > 0 else 0.0,
+                    "positive_add_certified_accuracy": len(positive_add_rows) / total if total > 0 else 0.0,
+                    "delete_certified_fraction_on_correct": (
+                        len(positive_delete_rows) / len(correct_rows) if correct_rows else 0.0
+                    ),
+                    "add_certified_fraction_on_correct": (
+                        len(positive_add_rows) / len(correct_rows) if correct_rows else 0.0
+                    ),
+                    "mean_delete_radius_on_correct": (
+                        sum(int(row.get("reported_asymmetric_delete_budget", 0) or 0) for row in correct_rows)
+                        / len(correct_rows)
+                        if correct_rows
+                        else 0.0
+                    ),
+                    "mean_add_radius_on_correct": (
+                        sum(int(row.get("reported_asymmetric_add_budget", 0) or 0) for row in correct_rows)
+                        / len(correct_rows)
+                        if correct_rows
+                        else 0.0
+                    ),
+                }
+            )
         summary_rows.append(summary_row)
 
     summary_rows.sort(key=lambda row: tuple(row[key_name] for key_name in [*config_keys, *group_keys]))
     return summary_rows
+
+
+def _build_reported_radius_curve(certificate_rows, radius_key, max_radius):
+    total_nodes = len(certificate_rows)
+    curve = []
+
+    for radius in range(max_radius + 1):
+        certified_nodes = sum(
+            bool(row.get("is_correct", False))
+            and not bool(row.get("abstained", False))
+            and int(row.get(radius_key, 0) or 0) >= radius
+            for row in certificate_rows
+        )
+        curve.append(
+            {
+                "radius": radius,
+                "certified_nodes": certified_nodes,
+                "evaluated_nodes": total_nodes,
+                "certified_accuracy": certified_nodes / total_nodes if total_nodes > 0 else 0.0,
+            }
+        )
+
+    return curve
 
 
 
@@ -730,10 +785,30 @@ def _evaluate_sparse_certificate_subset(
             for certificate in per_node_certificates
             if certificate["is_correct"]
         ]
-        certified_accuracy_curve = build_certified_accuracy_curve(
-            per_node_certificates,
-            max_radius=CERTIFICATE_MAX_RADIUS,
-        )
+        reported_delete_radii = [
+            certificate["reported_asymmetric_delete_budget"]
+            for certificate in per_node_certificates
+            if certificate["is_correct"]
+        ]
+        reported_add_radii = [
+            certificate["reported_asymmetric_add_budget"]
+            for certificate in per_node_certificates
+            if certificate["is_correct"]
+        ]
+        curve_specs = [
+            (
+                "total",
+                "reported_certified_radius",
+                "add/delete total",
+                CERTIFICATE_MAX_RADIUS,
+            ),
+            (
+                "deletion_only",
+                "reported_asymmetric_delete_budget",
+                "deletion-only",
+                ASYMMETRIC_CERTIFICATE_MAX_DELETE,
+            ),
+        ]
 
         row = {
             "p_delete": float(p_delete),
@@ -744,42 +819,76 @@ def _evaluate_sparse_certificate_subset(
             "positive_certified_accuracy": sum(radius > 0 for radius in reported_radii) / len(per_node_certificates)
             if per_node_certificates
             else 0.0,
+            "positive_delete_certified_accuracy": sum(radius > 0 for radius in reported_delete_radii)
+            / len(per_node_certificates)
+            if per_node_certificates
+            else 0.0,
+            "positive_add_certified_accuracy": sum(radius > 0 for radius in reported_add_radii)
+            / len(per_node_certificates)
+            if per_node_certificates
+            else 0.0,
             "certified_fraction_on_correct": sum(radius > 0 for radius in reported_radii) / correct_nodes
             if correct_nodes > 0
             else 0.0,
+            "delete_certified_fraction_on_correct": sum(radius > 0 for radius in reported_delete_radii) / correct_nodes
+            if correct_nodes > 0
+            else 0.0,
+            "add_certified_fraction_on_correct": sum(radius > 0 for radius in reported_add_radii) / correct_nodes
+            if correct_nodes > 0
+            else 0.0,
             "mean_certified_radius_on_correct": sum(reported_radii) / len(reported_radii) if reported_radii else 0.0,
+            "mean_delete_radius_on_correct": sum(reported_delete_radii) / len(reported_delete_radii)
+            if reported_delete_radii
+            else 0.0,
+            "mean_add_radius_on_correct": sum(reported_add_radii) / len(reported_add_radii)
+            if reported_add_radii
+            else 0.0,
         }
         summary_rows.append(row)
 
-        per_config_curve_rows = []
-        for point in certified_accuracy_curve:
-            curve_row = {
-                "p_delete": float(p_delete),
-                "p_add": float(p_add),
-                "max_additions": int(max_additions),
-                "radius": int(point["radius"]),
-                "certified_accuracy": float(point["certified_accuracy"]),
-            }
-            curve_rows.append(curve_row)
-            per_config_curve_rows.append(
+        for radius_type, radius_key, curve_name, max_radius in curve_specs:
+            certified_accuracy_curve = _build_reported_radius_curve(
+                certificate_rows=per_node_certificates,
+                radius_key=radius_key,
+                max_radius=max_radius,
+            )
+            per_config_curve_rows = []
+            for point in certified_accuracy_curve:
+                curve_row = {
+                    "p_delete": float(p_delete),
+                    "p_add": float(p_add),
+                    "max_additions": int(max_additions),
+                    "radius_type": radius_type,
+                    "radius": int(point["radius"]),
+                    "certified_nodes": int(point["certified_nodes"]),
+                    "evaluated_nodes": int(point["evaluated_nodes"]),
+                    "certified_accuracy": float(point["certified_accuracy"]),
+                }
+                curve_rows.append(curve_row)
+                per_config_curve_rows.append(
+                    {
+                        "radius": curve_row["radius"],
+                        "certified_accuracy": curve_row["certified_accuracy"],
+                    }
+                )
+
+            curves.append(
                 {
-                    "radius": curve_row["radius"],
-                    "certified_accuracy": curve_row["certified_accuracy"],
+                    "label": (
+                        f"{curve_label_prefix}sparse {curve_name} "
+                        f"p_del={p_delete:.3f}, p_add={p_add:.6f}"
+                    ).strip(),
+                    "rows": per_config_curve_rows,
                 }
             )
-
-        curves.append(
-            {
-                "label": f"{curve_label_prefix}sparse p_del={p_delete:.3f}, p_add={p_add:.6f}".strip(),
-                "rows": per_config_curve_rows,
-            }
-        )
 
         print(
             f"p_delete={p_delete:.3f}, p_add={p_add:.6f} | "
             f"Subset accuracy {row['correct_fraction']:.4f} | "
-            f"Certified acc @ r>=1 {row['positive_certified_accuracy']:.4f} | "
-            f"Mean radius on correct {row['mean_certified_radius_on_correct']:.3f}"
+            f"Total cert acc @ r>=1 {row['positive_certified_accuracy']:.4f} | "
+            f"Deletion cert acc @ r>=1 {row['positive_delete_certified_accuracy']:.4f} | "
+            f"Mean total/delete radius on correct "
+            f"{row['mean_certified_radius_on_correct']:.3f}/{row['mean_delete_radius_on_correct']:.3f}"
         )
 
     return {
@@ -2339,6 +2448,38 @@ def run_single_experiment(
                 certificate_rows.extend(diagnostics_bundle["symmetric_certificate_rows"])
                 sparse_local_certificate_rows.extend(diagnostics_bundle["sparse_certificate_rows"])
 
+    certificate_radius_family_curve_rows = [
+        {
+            "model_variant": "clean-training",
+            "certificate_family": "symmetric",
+            "radius_type": "symmetric",
+            **row,
+        }
+        for row in certified_accuracy_curve_rows
+    ] + [
+        {
+            "model_variant": "clean-training",
+            "certificate_family": "sparse-asymmetric",
+            **row,
+        }
+        for row in sparse_certified_accuracy_curve_rows
+    ] + [
+        {
+            "model_variant": MATCHED_SPARSE_TRAINING_LABEL,
+            "certificate_family": "symmetric",
+            "radius_type": "symmetric",
+            **row,
+        }
+        for row in robust_certified_accuracy_curve_rows
+    ] + [
+        {
+            "model_variant": MATCHED_SPARSE_TRAINING_LABEL,
+            "certificate_family": "sparse-asymmetric",
+            **row,
+        }
+        for row in robust_sparse_certified_accuracy_curve_rows
+    ]
+
     results_payload = {
         "seed": int(seed),
         "dataset": dataset.name,
@@ -2433,13 +2574,16 @@ def run_single_experiment(
         "local_certificate_subset_rows": certificate_subset_rows,
         "sparse_local_certificate_accuracy_subset_sweep": sparse_certificate_accuracy_rows,
         "sparse_local_certified_accuracy_curve": sparse_certified_accuracy_curve_rows,
+        "sparse_asymmetric_certified_accuracy_curve": sparse_certified_accuracy_curve_rows,
         "sparse_local_certificate_subset_rows": sparse_certificate_subset_rows,
         "robust_local_certificate_accuracy_subset_sweep": robust_symmetric_certificate_rows,
         "robust_local_certified_accuracy_curve": robust_certified_accuracy_curve_rows,
         "robust_local_certificate_subset_rows": robust_certificate_subset_rows,
         "robust_sparse_local_certificate_accuracy_subset_sweep": robust_sparse_certificate_accuracy_rows,
         "robust_sparse_local_certified_accuracy_curve": robust_sparse_certified_accuracy_curve_rows,
+        "robust_sparse_asymmetric_certified_accuracy_curve": robust_sparse_certified_accuracy_curve_rows,
         "robust_sparse_local_certificate_subset_rows": robust_sparse_certificate_subset_rows,
+        "certificate_radius_family_curve": certificate_radius_family_curve_rows,
         "global_attack_results": global_attack_rows,
         "nettack_examples": nettack_logs,
         "selected_focus_node": selected_focus_summary,
@@ -2531,6 +2675,7 @@ def run_single_experiment(
     save_csv_rows(results_dir / "symmetric_margin_bucket_summary.csv", symmetric_margin_bucket_rows)
     save_csv_rows(results_dir / "sparse_certificate_subset_sweep.csv", sparse_certificate_accuracy_rows)
     save_csv_rows(results_dir / "sparse_certified_accuracy_curve.csv", sparse_certified_accuracy_curve_rows)
+    save_csv_rows(results_dir / "sparse_asymmetric_certified_accuracy_curve.csv", sparse_certified_accuracy_curve_rows)
     save_csv_rows(results_dir / "sparse_certificate_subset_rows.csv", sparse_certificate_subset_rows)
     save_csv_rows(results_dir / "sparse_degree_bucket_summary.csv", sparse_degree_bucket_rows)
     save_csv_rows(results_dir / "sparse_margin_bucket_summary.csv", sparse_margin_bucket_rows)
@@ -2541,9 +2686,14 @@ def run_single_experiment(
     save_csv_rows(results_dir / "robust_symmetric_margin_bucket_summary.csv", robust_symmetric_margin_bucket_rows)
     save_csv_rows(results_dir / "robust_sparse_certificate_subset_sweep.csv", robust_sparse_certificate_accuracy_rows)
     save_csv_rows(results_dir / "robust_sparse_certified_accuracy_curve.csv", robust_sparse_certified_accuracy_curve_rows)
+    save_csv_rows(
+        results_dir / "robust_sparse_asymmetric_certified_accuracy_curve.csv",
+        robust_sparse_certified_accuracy_curve_rows,
+    )
     save_csv_rows(results_dir / "robust_sparse_certificate_subset_rows.csv", robust_sparse_certificate_subset_rows)
     save_csv_rows(results_dir / "robust_sparse_degree_bucket_summary.csv", robust_sparse_degree_bucket_rows)
     save_csv_rows(results_dir / "robust_sparse_margin_bucket_summary.csv", robust_sparse_margin_bucket_rows)
+    save_csv_rows(results_dir / "certificate_radius_family_curve.csv", certificate_radius_family_curve_rows)
     save_csv_rows(results_dir / "joint_certificate_variant_summary.csv", joint_certificate_variant_rows)
     save_csv_rows(results_dir / "purification_sweep.csv", purification_rows)
     save_csv_rows(results_dir / "nettack_target_purification_sweep.csv", nettack_target_purification_summary)
@@ -2673,6 +2823,7 @@ def _apply_cli_config(args):
     global GLOBAL_ATTACK_BUDGETS
     global EDGE_DROP_SWEEP
     global SPARSE_FLIP_SWEEP
+    global SPARSE_CERTIFICATE_SWEEP
     global CERTIFIED_ACCURACY_SAMPLES
     global CERTIFIED_ACCURACY_NODE_COUNT
     global LOCAL_CERTIFICATE_SAMPLES
@@ -2684,6 +2835,7 @@ def _apply_cli_config(args):
     GLOBAL_ATTACK_BUDGETS = args.attack_budgets
     EDGE_DROP_SWEEP = args.edge_drop_sweep
     SPARSE_FLIP_SWEEP = args.sparse_flip_sweep
+    SPARSE_CERTIFICATE_SWEEP = args.sparse_flip_sweep
     CERTIFIED_ACCURACY_SAMPLES = args.certified_samples
     CERTIFIED_ACCURACY_NODE_COUNT = args.certificate_node_count
     LOCAL_CERTIFICATE_SAMPLES = args.local_certificate_samples

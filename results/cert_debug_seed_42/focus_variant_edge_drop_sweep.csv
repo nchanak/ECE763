@@ -1,0 +1,16 @@
+model_variant,attack_variant,target_node,p_delete,clean_test_accuracy,attacked_test_accuracy,clean_margin,attacked_margin,clean_pA_lower,attacked_pA_lower,clean_pred,attacked_pred,clean_is_correct,attacked_is_correct,true_label
+clean-training,clean-training,2488,0.05,0.817,0.816,1.0,1.0,0.9849131592259058,0.9849131592259058,1,0,1,0,1
+clean-training,clean-training,2488,0.1,0.817,0.816,1.0,0.976,0.9849131592259058,0.9623852021396418,1,0,1,0,1
+clean-training,clean-training,2488,0.2,0.818,0.817,1.0,0.9319999999999999,0.9849131592259058,0.9306981692225529,1,0,1,0,1
+clean-training,clean-training,2488,0.3,0.813,0.814,1.0,0.804,0.9849131592259058,0.8510837421849398,1,0,1,0,1
+clean-training,clean-training,2488,0.4,0.807,0.81,1.0,0.6599999999999999,0.9849131592259058,0.7688721565242148,1,0,1,0,1
+matched-sparse-noisy-training,matched-sparse-noisy-training,2149,0.05,0.816,0.815,0.864,1.0,0.8605643232929396,0.9849131592259058,3,0,1,0,3
+matched-sparse-noisy-training,matched-sparse-noisy-training,2149,0.1,0.816,0.815,0.734,1.0,0.7644299789266956,0.9849131592259058,3,0,1,0,3
+matched-sparse-noisy-training,matched-sparse-noisy-training,2149,0.2,0.815,0.814,0.46,1.0,0.5686923059235529,0.9849131592259058,3,0,1,0,3
+matched-sparse-noisy-training,matched-sparse-noisy-training,2149,0.3,0.81,0.811,0.194,1.0,0.4337565805218088,0.9849131592259058,3,0,1,0,3
+matched-sparse-noisy-training,matched-sparse-noisy-training,2149,0.4,0.808,0.81,0.08200000000000002,1.0,0.3557279293657168,0.9849131592259058,0,0,0,0,3
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,2488,0.05,0.817,0.816,1.0,0.996,0.9849131592259058,0.9801816024907353,1,0,1,0,1
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,2488,0.1,0.817,0.816,1.0,0.98,0.9849131592259058,0.9656083372095423,1,0,1,0,1
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,2488,0.2,0.817,0.817,1.0,0.9319999999999999,0.9849131592259058,0.9306981692225529,1,0,1,0,1
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,2488,0.3,0.815,0.815,1.0,0.792,0.9849131592259058,0.8440304962773862,1,0,1,0,1
+clean-warmstart-symmetric-finetune,clean-warmstart-symmetric-finetune,2488,0.4,0.811,0.811,1.0,0.728,0.9849131592259058,0.8071030158432247,1,0,1,0,1
